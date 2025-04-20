@@ -76,43 +76,56 @@ export default function ChatInterface({ onGameRequest }) {
   };
 
   // Handle file selection with compression
-  const handleFileSelect = async (e) => {
+  const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
+  
     if (imageFiles.length === 0) return;
-
-    const maxFiles = 3;
-    const selectedFiles = imageFiles.slice(0, maxFiles);
-    if (imageFiles.length > maxFiles) {
-      alert(`Only the first ${maxFiles} images will be used to avoid exceeding limits.`);
-    }
-
-    for (const file of selectedFiles) {
-      let processedFile = file;
-
-      // If over 2MB, try compressing
-      if (file.size > 2 * 1024 * 1024) {
-        try {
-          processedFile = await compressImage(file);
-        } catch (error) {
-          console.error('Image compression error:', error);
-        }
-      }
-
-      // Still too large after compressing?
-      if (processedFile.size > 2 * 1024 * 1024) {
-        alert(`Image "${file.name}" still exceeds 2MB after compression. Please select a smaller image.`);
-        continue;
-      }
-
-      // Read as Data URL for preview & upload
+  
+    const newUploadedImages = [...uploadedImages];
+  
+    imageFiles.forEach(file => {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        setUploadedImages(prev => [...prev, event.target.result]);
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+  
+          // Resize to max dimension 256px for dramatic reduction
+          const maxDim = 256;
+          let width = img.width;
+          let height = img.height;
+  
+          if (width > height) {
+            if (width > maxDim) {
+              height *= maxDim / width;
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width *= maxDim / height;
+              height = maxDim;
+            }
+          }
+  
+          canvas.width = width;
+          canvas.height = height;
+  
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+  
+          // Convert to base64 JPEG at 40% quality
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.4);
+  
+          newUploadedImages.push(compressedDataUrl);
+          setUploadedImages([...newUploadedImages]);
+        };
+        img.src = e.target.result;
       };
-      reader.readAsDataURL(processedFile);
-    }
+      reader.readAsDataURL(file);
+    });
   };
+  
 
   // Handle file upload button click
   const handleUploadClick = () => {

@@ -32,10 +32,14 @@ export default function Home() {
 
   // Updated to receive both gameType and gameCode directly
   const handleGameGeneration = async (type, code) => {
-    setLoading(true);
+    setLoading(true); // Set loading to true when game generation starts
     setError(null);
     
     try {
+      // Simulate a delay to show loading state/dino game (remove in production)
+      // This is just for testing - you can remove this setTimeout in production
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
       // If code is provided directly, use it
       if (code) {
         setGameType(type);
@@ -49,7 +53,7 @@ export default function Home() {
       console.error('Error processing game:', error);
       setError(error.message);
     } finally {
-      setLoading(false);
+      setLoading(false); // Set loading to false when game generation completes
     }
   };
 
@@ -199,6 +203,7 @@ export default function Home() {
                 GAME SCREEN
               </h2>
             </div>
+            {/* Pass explicitly loading={loading} to ensure the prop is passed */}
             <GameDisplay 
               gameCode={gameCode} 
               gameType={gameType} 
