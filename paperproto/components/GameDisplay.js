@@ -202,11 +202,11 @@ export default function GameDisplay({ gameCode, gameType, loading }) {
 
   return (
     <div className="flex flex-col h-full">
-      {gameTitle && (
+      {/* {gameTitle && (
         <div className="p-4 border-b border-gray-200">
           <h2 className="text-lg font-medium">{gameTitle} Game</h2>
         </div>
-      )}
+      )} */}
       
       <div className="flex-1 flex items-center justify-center bg-gray-50 p-4">
         {loading ? (
