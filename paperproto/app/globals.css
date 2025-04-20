@@ -130,3 +130,25 @@ body {
     transform: rotate(360deg);
   }
 }
+
+/* CRT power-on animation */
+@keyframes turnOn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+    filter: brightness(3) saturate(0);
+  }
+  30% {
+    transform: scale(1.02);
+    filter: brightness(2) saturate(0.3);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1) saturate(1);
+  }
+}
+
+.crt-on {
+  animation: turnOn 0.6s ease-out forwards;
+}

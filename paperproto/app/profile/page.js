@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import ProtectedRoute from '../../components/ProtectedRoute';
+import BottomNavigation from '../../components/BottomNavigation';
 import {
   doc,
   getDoc,
@@ -360,6 +361,7 @@ function DashboardContent() {
           </div>
         </div>
       </main>
+      <BottomNavigation/>
     </div>
   );
 }

@@ -162,8 +162,8 @@ export default function CommunityPage() {
           </h2>
           
           {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="text-xl">Loading games...</div>
+            <div className="col-span-2 flex justify-center items-center h-64">
+             <div className="w-16 h-16 pixel-spinner"></div>
             </div>
           ) : filteredGames.length === 0 ? (
             <div className="bg-gray-800 rounded-lg p-8 text-center">
