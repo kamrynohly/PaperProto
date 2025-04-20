@@ -34,3 +34,15 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Known Todo's and issues
+- Todo: publish feature 
+- Todo: connect to database for memory
+- There are still definitely memory issues if the photo is too big
+- If the text includes the code that means token limit exceeded
+- Add multipplayer
+- Add style transfer
+- Format the bot's responses better
+- Share with friends and make them play 
+- Add loading animation
+- make sure 
