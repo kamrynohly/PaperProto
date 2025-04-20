@@ -1,10 +1,9 @@
-// components/BottomNavigation.jsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, PlusCircle, User } from 'lucide-react';
+import Image from 'next/image';
 
 const BottomNavigation = () => {
   const pathname = usePathname();
@@ -22,17 +21,20 @@ const BottomNavigation = () => {
     {
       name: 'Community',
       href: '/community',
-      icon: <Users size={36} />,
+      iconSrc: '/arcade.png',
+      alt: 'Community Icon'
     },
     {
       name: 'Create',
       href: '/create',
-      icon: <PlusCircle size={36} />,
+      iconSrc: '/console.png',
+      alt: 'Create Icon'
     },
     {
       name: 'Profile',
       href: '/profile',
-      icon: <User size={36} />,
+      iconSrc: '/profile.png',
+      alt: 'Profile Icon'
     },
   ];
 
@@ -40,14 +42,14 @@ const BottomNavigation = () => {
     <div className="fixed bottom-0 left-0 right-0 h-16 bg-gray-900 border-t-4 border-indigo-600 flex items-center justify-around z-50 shadow-lg">
       {tabs.map((tab) => {
         const isActive = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
-        
+
         return (
           <Link 
             key={tab.name}
             href={tab.href}
             className={`flex flex-col items-center justify-center w-full h-full transition-transform duration-200 hover:scale-110 ${
               isActive 
-                ? 'text-pink-500 relative after:content-[""] after:absolute after:bottom-0 after:left-1/4 after:right-1/4 after:h-1 after:bg-pink-500' 
+                ? 'text-pink-500 relative after:content-[""] after:absolute after:bottom-0 after:left-1/4 after:right-1/4 after:h-1' 
                 : 'text-gray-400 hover:text-indigo-400'
             }`}
             style={{
@@ -55,7 +57,14 @@ const BottomNavigation = () => {
             }}
           >
             <div className={`p-1 ${isActive ? 'bg-gray-700 rounded-md border-2 border-indigo-500' : ''}`}>
-              {tab.icon}
+              <Image
+                src={tab.iconSrc}
+                alt={tab.alt}
+                width={32}
+                height={32}
+                className="object-contain"
+                priority
+              />
             </div>
           </Link>
         );
