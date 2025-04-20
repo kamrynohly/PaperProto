@@ -68,7 +68,8 @@ function DashboardContent() {
                 if (projectDoc.exists()) {
                   projectsData.push({
                     id: projectId,
-                    name: projectDoc.data().name,
+                    title: projectDoc.data().title,
+                    description: projectDoc.data().description,
                     plays: projectDoc.data().plays || 0,
                     likes: projectDoc.data().likes || 0,
                     rating: projectDoc.data().rating || "N/A",
@@ -127,7 +128,8 @@ function DashboardContent() {
                   if (projectDoc.exists()) {
                     projectsData.push({
                       id: projectId,
-                      name: projectDoc.data().name,
+                      title: projectDoc.data().title,
+                      description: projectDoc.data().description,
                       plays: projectDoc.data().plays || 0,
                       likes: projectDoc.data().likes || 0,
                       rating: projectDoc.data().rating || "N/A",
