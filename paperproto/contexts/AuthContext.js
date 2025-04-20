@@ -2,12 +2,13 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
   onAuthStateChanged,
   signOut
 } from 'firebase/auth';
-import { initializeApp } from 'firebase/app';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
 // Your Firebase configuration
 const firebaseConfig = {
@@ -30,36 +31,100 @@ try {
   }
 }
 
+// Get Firebase services
+const auth = getAuth();
+const db = getFirestore();
+
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+      
+      if (user) {
+        // Fetch user data from Firestore when user is authenticated
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            setUserData(userDoc.data());
+          } else {
+            // User document doesn't exist yet (might be a new Google sign-in)
+            setUserData(null);
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          setUserData(null);
+        }
+      } else {
+        setUserData(null);
+      }
+      
       setLoading(false);
     });
 
     return unsubscribe;
   }, []);
 
+  // Sign out function
   const logout = async () => {
-    const auth = getAuth();
-    return signOut(auth);
+    try {
+      await signOut(auth);
+      setCurrentUser(null);
+      setUserData(null);
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
+  // Get or refresh user data
+  const refreshUserData = async () => {
+    if (!currentUser) return null;
+    
+    try {
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setUserData(data);
+        return data;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error refreshing user data:", error);
+      return null;
+    }
+  };
+
+  // Check if username exists
+  const checkUsernameExists = async (username) => {
+    try {
+      const userRef = doc(db, 'usernames', username);
+      const userSnap = await getDoc(userRef);
+      return userSnap.exists();
+    } catch (error) {
+      console.error("Error checking username:", error);
+      return false;
+    }
   };
 
   const value = {
     currentUser,
+    userData,
     loading,
-    logout
+    logout,
+    refreshUserData,
+    checkUsernameExists,
+    auth,
+    db
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 }
