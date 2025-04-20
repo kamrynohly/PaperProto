@@ -1,16 +1,18 @@
 // app/layout.js
-import './globals.css';
+'use client';
 
-export const metadata = {
-  title: 'Build Games with Claude Chat Bot',
-  description: 'Generate playable games with Claude AI',
-};
+import { AuthProvider } from '../contexts/AuthContext';
+import BottomNavigation from '../components/BottomNavigation';
+import './globals.css';
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        {children}
+        <AuthProvider>
+          {children}
+          <BottomNavigation />
+        </AuthProvider>
       </body>
     </html>
   );
