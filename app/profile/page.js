@@ -18,6 +18,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { User, LogOut, Edit, Trophy, Heart, Star, Gamepad2 } from 'lucide-react';
+import Link from 'next/link';
 
 // Create the Dashboard component that will be wrapped with ProtectedRoute
 function DashboardContent() {
@@ -64,12 +65,12 @@ function DashboardContent() {
               
               // For each project ID, fetch project details
               for (const projectId of userData.project_ids) {
-                const projectDoc = await getDoc(doc(db, "projects", projectId));
+                const projectDoc = await getDoc(doc(db, "games", projectId));
                 if (projectDoc.exists()) {
                   projectsData.push({
                     id: projectId,
-                    title: projectDoc.data().title,
-                    description: projectDoc.data().description,
+                    title: projectDoc.data().title || "Untitled Project",
+                    description: projectDoc.data().description || "",
                     plays: projectDoc.data().plays || 0,
                     likes: projectDoc.data().likes || 0,
                     rating: projectDoc.data().rating || "N/A",
@@ -82,15 +83,6 @@ function DashboardContent() {
             } catch (error) {
               console.error("Error fetching projects:", error);
             }
-          }
-          
-          // If no projects or fetch failed, use sample projects
-          if (!dashboardUserData.projects || dashboardUserData.projects.length === 0) {
-            dashboardUserData.projects = [
-              { id: 1, name: "Project 1", plays: 2000, likes: 1100 },
-              { id: 2, name: "Project 2", plays: 20, likes: 12 },
-              { id: 3, name: "Project 3", plays: 0, likes: 0 }
-            ];
           }
           
           setDashboardData(dashboardUserData);
@@ -118,6 +110,8 @@ function DashboardContent() {
             };
             
             // Fetch projects if project_ids exists
+            console.log("CURRENT USER")
+            console.log(userDocData.project_ids)
             if (userDocData.project_ids && userDocData.project_ids.length > 0) {
               try {
                 const projectsData = [];
@@ -128,8 +122,8 @@ function DashboardContent() {
                   if (projectDoc.exists()) {
                     projectsData.push({
                       id: projectId,
-                      title: projectDoc.data().title,
-                      description: projectDoc.data().description,
+                      title: projectDoc.data().title || "Untitled Project",
+                      description: projectDoc.data().description || "",
                       plays: projectDoc.data().plays || 0,
                       likes: projectDoc.data().likes || 0,
                       rating: projectDoc.data().rating || "N/A",
@@ -142,15 +136,6 @@ function DashboardContent() {
               } catch (error) {
                 console.error("Error fetching projects:", error);
               }
-            }
-            
-            // If no projects or fetch failed, use sample projects
-            if (!dashboardUserData.projects || dashboardUserData.projects.length === 0) {
-              dashboardUserData.projects = [
-                { id: 1, name: "Example 1", plays: 2000, likes: 1100 },
-                { id: 2, name: "Example 2", plays: 20, likes: 12 },
-                { id: 3, name: "Example 3", plays: 0, likes: 0 }
-              ];
             }
             
             setDashboardData(dashboardUserData);
@@ -186,11 +171,7 @@ function DashboardContent() {
               gameCount: initialUserData.gameCount || 0,
               likeCount: initialUserData.likeCount || 0,
               avgRating: initialUserData.avgRating || "--",
-              projects: [
-                { id: 1, name: "Project 1", plays: 2000, likes: 1100 },
-                { id: 2, name: "Project 2", plays: 20, likes: 12 },
-                { id: 3, name: "Project 3", plays: 0, likes: 0 }
-              ]
+              projects: []
             };
             
             setDashboardData(dashboardUserData);
@@ -207,11 +188,7 @@ function DashboardContent() {
           gameCount: 0,
           likeCount: 0,
           avgRating: "--",
-          projects: [
-            { id: 1, name: "Example 1", plays: 2000, likes: 1100 },
-            { id: 2, name: "Example 2", plays: 20, likes: 12 },
-            { id: 3, name: "Example 3", plays: 0, likes: 0 }
-          ]
+          projects: []
         });
         setLoading(false);
       } catch (error) {
@@ -221,9 +198,7 @@ function DashboardContent() {
           username: "Error",
           avatar: null,
           points: 0,
-          projects: [
-            { id: 1, name: "Example", plays: 2000, likes: 1100 },
-          ]
+          projects: []
         });
         setLoading(false);
       }
@@ -241,11 +216,7 @@ function DashboardContent() {
           gameCount: 0,
           likeCount: 0,
           avgRating: "--",
-          projects: [
-            { id: 1, name: "Example 1", plays: 2000, likes: 1100 },
-            { id: 2, name: "Example 2", plays: 20, likes: 12 },
-            { id: 3, name: "Example 3", plays: 0, likes: 0 }
-          ]
+          projects: []
         });
       }
     }, 3000); // 3 second timeout
@@ -414,53 +385,74 @@ function DashboardContent() {
                 <div className="col-span-2 flex justify-center items-center h-64">
                   <div className="w-16 h-16 pixel-spinner"></div>
                 </div>
-              ) : dashboardData?.projects.map(project => (
-                <div key={project.id} className="bg-gray-800 border-4 border-indigo-600 overflow-hidden rounded-lg transition-transform duration-200 hover:scale-105 shadow-[4px_4px_0px_0px_rgba(79,70,229)]">
-                  <div className="relative h-40 bg-indigo-900">
-                    {project.image ? (
-                      <img src={project.image} alt={project.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-4xl font-bold text-pink-500"
-                            style={{ 
-                              textShadow: '2px 2px 0px #4F46E5',
-                              fontFamily: '"Press Start 2P", cursive'
-                            }}>
-                          {project.name.charAt(0)}
+              ) : dashboardData?.projects && dashboardData.projects.length > 0 ? (
+                dashboardData.projects.map(project => (
+                  <div key={project.id} className="bg-gray-800 border-4 border-indigo-600 overflow-hidden rounded-lg transition-transform duration-200 hover:scale-105 shadow-[4px_4px_0px_0px_rgba(79,70,229)]">
+                    <div className="relative h-40 bg-indigo-900">
+                      {project.image ? (
+                        <img src={project.image} alt={project.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-4xl font-bold text-pink-500"
+                              style={{ 
+                                textShadow: '2px 2px 0px #4F46E5',
+                                fontFamily: '"Press Start 2P", cursive'
+                              }}>
+                            {project.title && project.title.charAt(0)}
+                          </div>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-70"></div>
+                      <h3 className="absolute bottom-2 left-4 text-xl font-bold text-pink-400"
+                          style={{ 
+                            textShadow: '1px 1px 0px #4F46E5'
+                          }}>
+                        {project.title || "Untitled Project"}
+                      </h3>
+                    </div>
+                    <div className="p-4 flex justify-between items-center">
+                      <div className="flex space-x-4">
+                        <div className="flex items-center">
+                          <Gamepad2 size={16} className="mr-1 text-indigo-400" />
+                          <span>{project.plays || 0}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Heart size={16} className="mr-1 text-red-500" />
+                          <span>{project.likes || 0}</span>
                         </div>
                       </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-70"></div>
-                    <h3 className="absolute bottom-2 left-4 text-xl font-bold text-pink-400"
-                        style={{ 
-                          textShadow: '1px 1px 0px #4F46E5'
-                        }}>
-                      {project.name}
-                    </h3>
-                  </div>
-                  <div className="p-4 flex justify-between items-center">
-                    <div className="flex space-x-4">
                       <div className="flex items-center">
-                        <Gamepad2 size={16} className="mr-1 text-indigo-400" />
-                        <span>{project.plays}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Heart size={16} className="mr-1 text-red-500" />
-                        <span>{project.likes}</span>
+                        <Star size={16} className="mr-1 text-yellow-400" />
+                        <span>{project.rating || "N/A"}</span>
                       </div>
                     </div>
-                    <div className="flex items-center">
-                      <Star size={16} className="mr-1 text-yellow-400" />
-                      <span>{project.rating || "N/A"}</span>
+                    <div className="flex border-t border-gray-700">
+                      <button className="flex-1 p-2 bg-indigo-700 hover:bg-indigo-600 text-center transition-colors duration-200">Edit</button>
+                      <Link href={`/games/${project.id}`}>
+                        <button className="flex-1 p-2 bg-pink-600 hover:bg-pink-500 text-center transition-colors duration-200">Play</button>
+                      </Link>
+                      <button className="flex-1 p-2 bg-indigo-600 hover:bg-indigo-500 text-center transition-colors duration-200">Share</button>
                     </div>
                   </div>
-                  <div className="flex border-t border-gray-700">
-                    <button className="flex-1 p-2 bg-indigo-700 hover:bg-indigo-600 text-center transition-colors duration-200">Edit</button>
-                    <button className="flex-1 p-2 bg-pink-600 hover:bg-pink-500 text-center transition-colors duration-200">Play</button>
-                    <button className="flex-1 p-2 bg-indigo-600 hover:bg-indigo-500 text-center transition-colors duration-200">Share</button>
-                  </div>
+                ))
+              ) : (
+                <div className="col-span-2 bg-gray-800 border-4 border-indigo-600 p-8 rounded-lg text-center">
+                  <Gamepad2 size={48} className="mx-auto mb-4 text-pink-400 opacity-50" />
+                  <h3 className="text-2xl font-bold text-indigo-400 mb-4"
+                      style={{ 
+                        textShadow: '1px 1px 0px #EC4899',
+                        fontFamily: '"Press Start 2P", cursive'
+                      }}>
+                    No Games Yet
+                  </h3>
+                  <p className="text-gray-400 mb-6">
+                    You haven't created any games yet. Click the button below to get started!
+                  </p>
+                  {/* <button className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 border-2 border-indigo-400 inline-flex items-center transition-colors duration-200 rounded-md shadow-[2px_2px_0px_0px_rgba(79,70,229)]">
+                    <span className="text-2xl mr-2">+</span> Create Your First Game
+                  </button> */}
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

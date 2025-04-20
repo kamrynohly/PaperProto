@@ -1,130 +1,43 @@
 // app/games/[id]/page.js
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../../lib/firebase'; // You'll need to create this
 import BottomNavigation from '../../../components/BottomNavigation';
+import GameDisplay from '../../../components/GameDisplay';
 
 export default function GamePage({ params }) {
   const router = useRouter();
+  const gameId = use(params).id; // Unwrap params with React.use()
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userRating, setUserRating] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
-    // In a real app, you would fetch this data from an API
     const fetchGame = async () => {
       try {
-        // Simulate API fetch delay
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // Fetch the game from Firestore using the unwrapped gameId
+        const gameRef = doc(db, 'games', gameId);
+        const gameSnap = await getDoc(gameRef);
         
-        // This is mock data - in a real app you'd fetch from an API
-        const mockGames = [
-          {
-            id: 1,
-            title: 'Pixel Adventure',
-            description: 'A retro platformer with challenging levels and hidden secrets. Players explore various pixel-art worlds, collecting power-ups and defeating enemies. The game features tight controls, secret areas in every level, and an original chiptune soundtrack that enhances the retro gaming experience. Special abilities can be unlocked as you progress through the increasingly difficult levels.',
-            rating: 4.9,
-            plays: 254789,
-            canvasData: {
-              width: 800,
-              height: 600,
-              backgroundColor: '#000'
-            }
-          },
-          {
-            id: 2,
-            title: 'Cosmic Invaders',
-            description: 'Classic space shooter with modern twists and power-ups. Defend Earth from waves of alien invaders in this reimagined arcade classic. Features include multiple weapon types, screen-clearing bombs, and challenging boss fights. The difficulty scales with your performance, ensuring that both casual and hardcore players will find an appropriate challenge level.',
-            rating: 4.8,
-            plays: 198423,
-            canvasData: {
-              width: 800,
-              height: 600,
-              backgroundColor: '#000022'
-            }
-          },
-          {
-            id: 3,
-            title: 'Dungeon Crawler',
-            description: 'Explore procedurally generated dungeons filled with loot and enemies. Each run through the dungeon is unique, with randomized layouts, treasures, and enemy placements. Collect magical items that synergize in unexpected ways to create powerful builds. Features perma-death mechanics balanced with persistent upgrades that make each subsequent run more manageable.',
-            rating: 4.7,
-            plays: 187654,
-            canvasData: {
-              width: 800,
-              height: 600,
-              backgroundColor: '#111'
-            }
-          },
-          {
-            id: 4,
-            title: 'Neon Racer',
-            description: 'High-speed racing in a retro-futuristic city landscape. Feel the rush as you drift around tight corners and activate boost pads to overtake competitors. The stylized neon visuals create an immersive cyberpunk atmosphere, complemented by a synth-wave soundtrack that responds dynamically to your racing performance.',
-            rating: 4.6,
-            plays: 176532,
-            canvasData: {
-              width: 800,
-              height: 600,
-              backgroundColor: '#120022'
-            }
-          },
-          {
-            id: 5,
-            title: 'Retro Quest',
-            description: 'An epic RPG adventure inspired by 8-bit classics. Embark on a hero\'s journey across a vast pixel world, completing quests and upgrading your character. The turn-based combat system emphasizes strategy and preparation, while the branching narrative allows for multiple endings based on the choices you make throughout your adventure.',
-            rating: 4.5,
-            plays: 154321,
-            canvasData: {
-              width: 800,
-              height: 600,
-              backgroundColor: '#042200'
-            }
-          },
-          {
-            id: 6,
-            title: 'Puzzle Master',
-            description: 'Brain-teasing puzzles that increase in difficulty as you progress. Each level introduces new mechanics that build upon previous concepts, creating an engaging learning curve. Solve logic puzzles, spatial challenges, and pattern recognition tests that will exercise different areas of your brain. The minimalist art style keeps the focus on the puzzles themselves.',
-            rating: 4.4,
-            plays: 143210,
-            canvasData: {
-              width: 800,
-              height: 600,
-              backgroundColor: '#001133'
-            }
-          },
-          {
-            id: 7,
-            title: 'Beat Blaster',
-            description: 'Rhythm game with retro synth music and pixel art visualizations. Match your actions to the beat of the music to maximize your score and create impressive visual effects. Features tracks from indie chiptune and synthwave artists, with difficulty levels ranging from casual to extreme. The visual feedback system makes it accessible even to players new to the rhythm game genre.',
-            rating: 4.3,
-            plays: 132109,
-            canvasData: {
-              width: 800,
-              height: 600,
-              backgroundColor: '#330033'
-            }
-          },
-          {
-            id: 8,
-            title: 'Castle Defense',
-            description: 'Tower defense game with strategic depth and pixel art charm. Position your defenders wisely to protect your castle from waves of diverse enemies. Research and upgrade technologies to unlock new tower types and special abilities. The campaign mode features a story that unfolds as you defend different regions of your kingdom.',
-            rating: 4.2,
-            plays: 121098,
-            canvasData: {
-              width: 800,
-              height: 600,
-              backgroundColor: '#221100'
-            }
-          }
-        ];
-        
-        // Find the game with the matching ID
-        const foundGame = mockGames.find(g => g.id === parseInt(params.id));
-        
-        if (foundGame) {
-          setGame(foundGame);
+        console.log(gameSnap)
+
+        if (gameSnap.exists()) {
+          // Convert the document to a game object with the document ID
+          const gameData = {
+            id: gameSnap.id,
+            ...gameSnap.data()
+          };
+          
+          setGame(gameData);
+          
+          // Check if this game is in the user's favorites (would need user auth)
+          // This is a placeholder - implement user auth and user data fetching
+          // fetchUserGameData(gameId);
         } else {
           // Handle case when game is not found
           console.error("Game not found");
@@ -140,21 +53,35 @@ export default function GamePage({ params }) {
     };
 
     fetchGame();
-  }, [params.id, router]);
+  }, [gameId, router]);
 
   const handleRatingClick = (rating) => {
     setUserRating(rating);
     // In a real app, you would send this to your API
-    console.log(`Rating game ${params.id} with ${rating} stars`);
+
+    console.log(`Rating game ${gameId} with ${rating} stars`);
   };
 
   const toggleFavorite = () => {
     setIsFavorite(!isFavorite);
     // In a real app, you would send this to your API
-    console.log(`${!isFavorite ? 'Adding' : 'Removing'} game ${params.id} ${!isFavorite ? 'to' : 'from'} favorites`);
+    // Example implementation with user auth:
+      // const userRef = doc(db, 'users', currentUser.uid);
+      // if (newFavoriteState) {
+      //   await updateDoc(userRef, {
+      //     [`favorites.${gameId}`]: true
+      //   });
+      // } else {
+      //   await updateDoc(userRef, {
+      //     [`favorites.${gameId}`]: deleteField()
+      //   });
+      // }
+    console.log(`${!isFavorite ? 'Adding' : 'Removing'} game ${gameId} ${!isFavorite ? 'to' : 'from'} favorites`);
   };
 
   const formatPlays = (plays) => {
+    if (!plays) return '0'; // Handle undefined plays
+
     if (plays >= 1000000) {
       return `${(plays / 1000000).toFixed(1)}M`;
     } else if (plays >= 1000) {
@@ -214,7 +141,7 @@ export default function GamePage({ params }) {
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
-                    <span className="ml-1 font-bold">{game.rating.toFixed(1)}</span>
+                    <span className="ml-1 font-bold">{game.rating ? game.rating.toFixed(1) : '0.0'}</span>
                   </div>
                   <span className="text-gray-400">{formatPlays(game.plays)} plays</span>
                 </div>
@@ -255,28 +182,12 @@ export default function GamePage({ params }) {
               </div>
               
               {/* Right side - Game canvas */}
-              <div className="bg-black p-6 flex items-center justify-center">
-                <div className="w-full h-full min-h-[500px] relative">
-                  {/* This is where the game canvas would be rendered */}
-                  <div 
-                    className="w-full h-full rounded-lg border border-gray-700 flex items-center justify-center" 
-                    style={{
-                      backgroundColor: game.canvasData?.backgroundColor || '#000',
-                      minHeight: '500px'
-                    }}
-                  >
-                    <div className="text-center">
-                      <div className="text-6xl font-bold text-indigo-500 mb-4 animate-pulse">
-                        {game.title.charAt(0)}
-                      </div>
-                      <p className="text-gray-400">Game canvas would load here</p>
-                      <button className="mt-4 px-4 py-2 bg-pink-600 rounded hover:bg-pink-700 transition-colors">
-                        Start Game
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <GameDisplay 
+              gameCode={game.gameCode} 
+              gameType={game.title} 
+              loading={loading} 
+              />
+              
             </div>
           </div>
         ) : (

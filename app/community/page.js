@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import BottomNavigation from '../../components/BottomNavigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { collection, getDocs } from "firebase/firestore";
+import { db } from '../../lib/firebase'; // You'll need to create this file
 
 export default function CommunityPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -13,82 +15,23 @@ export default function CommunityPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, you would fetch this data from an API
     const fetchGames = async () => {
-      // Simulating API fetch delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock data for demonstration
-      const mockGames = [
-        {
-          id: 1,
-          title: 'Pixel Adventure',
-          description: 'A retro platformer with challenging levels and hidden secrets',
-          image: '/images/pixel-adventure.png',
-          rating: 4.9,
-          plays: 254789
-        },
-        {
-          id: 2,
-          title: 'Cosmic Invaders',
-          description: 'Classic space shooter with modern twists and power-ups',
-          image: '/images/cosmic-invaders.png',
-          rating: 4.8,
-          plays: 198423
-        },
-        {
-          id: 3,
-          title: 'Dungeon Crawler',
-          description: 'Explore procedurally generated dungeons filled with loot and enemies',
-          image: '/images/dungeon-crawler.png',
-          rating: 4.7,
-          plays: 187654
-        },
-        {
-          id: 4,
-          title: 'Neon Racer',
-          description: 'High-speed racing in a retro-futuristic city landscape',
-          image: '/images/neon-racer.png',
-          rating: 4.6,
-          plays: 176532
-        },
-        {
-          id: 5,
-          title: 'Retro Quest',
-          description: 'An epic RPG adventure inspired by 8-bit classics',
-          image: '/images/retro-quest.png',
-          rating: 4.5,
-          plays: 154321
-        },
-        {
-          id: 6,
-          title: 'Puzzle Master',
-          description: 'Brain-teasing puzzles that increase in difficulty as you progress',
-          image: '/images/puzzle-master.png',
-          rating: 4.4,
-          plays: 143210
-        },
-        {
-          id: 7,
-          title: 'Beat Blaster',
-          description: 'Rhythm game with retro synth music and pixel art visualizations',
-          image: '/images/beat-blaster.png',
-          rating: 4.3,
-          plays: 132109
-        },
-        {
-          id: 8,
-          title: 'Castle Defense',
-          description: 'Tower defense game with strategic depth and pixel art charm',
-          image: '/images/castle-defense.png',
-          rating: 4.2,
-          plays: 121098
-        }
-      ];
-      
-      setGames(mockGames);
-      setFilteredGames(mockGames);
-      setIsLoading(false);
+      try {
+        const gamesCollectionRef = collection(db, "games");
+        const querySnapshot = await getDocs(gamesCollectionRef);
+        
+        const gamesData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        setGames(gamesData);
+        setFilteredGames(gamesData);
+      } catch (error) {
+        console.error("Error fetching games:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchGames();
@@ -101,14 +44,16 @@ export default function CommunityPage() {
     }
     
     const filtered = games.filter(game => 
-      game.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      game.description.toLowerCase().includes(searchQuery.toLowerCase())
+      game.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      game.description?.toLowerCase().includes(searchQuery.toLowerCase())
     );
     
     setFilteredGames(filtered);
   };
 
   const formatPlays = (plays) => {
+    if (!plays) return '0';
+    
     if (plays >= 1000000) {
       return `${(plays / 1000000).toFixed(1)}M`;
     } else if (plays >= 1000) {
@@ -176,23 +121,32 @@ export default function CommunityPage() {
                 <Link key={game.id} href={`/games/${game.id}`}>
                   <div className="bg-gray-800 rounded-lg overflow-hidden transition-transform duration-200 hover:transform hover:scale-105 border-2 border-gray-700 hover:border-indigo-500 h-full flex flex-col">
                     <div className="relative h-48 w-full bg-gray-700">
-                      {/* In a real app, use actual images */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-4xl font-bold text-indigo-500">
-                          {game.title.charAt(0)}
+                      {/* If there's an image URL, display it */}
+                      {game.image ? (
+                        <Image 
+                          src={game.image} 
+                          alt={game.title}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-4xl font-bold text-indigo-500">
+                            {game.title?.charAt(0) || '?'}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                     
                     <div className="p-4 flex-grow">
                       <div className="flex items-start justify-between">
-                        <h3 className="text-lg font-bold text-pink-400 mb-2">{game.title}</h3>
+                        <h3 className="text-lg font-bold text-pink-400 mb-2">{game.title || 'Untitled Game'}</h3>
                         <div className="flex items-center text-yellow-400 ml-2">
-                          ★ {game.rating}
+                          ★ {game.rating || '0.0'}
                         </div>
                       </div>
                       <p className="text-sm text-gray-300 mb-3 line-clamp-2">
-                        {game.description}
+                        {game.description || 'No description available'}
                       </p>
                       <div className="text-xs text-indigo-400 mt-auto">
                         {formatPlays(game.plays)} plays
