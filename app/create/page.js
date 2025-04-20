@@ -191,7 +191,7 @@ export default function Home() {
                 CHAT CONSOLE
               </h2>
             </div>
-            <ChatInterface onGameRequest={handleGameGeneration} />
+            <ChatInterface onGameRequest={handleGameGeneration} setLoading={setLoading}/>
           </div>
           
           {/* Right side - Game Display */}

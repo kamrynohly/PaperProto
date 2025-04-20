@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { sendMessageToClaude } from '../utils/claude-api';
-import Image from 'next/image';
+import NextImage from 'next/image';
 
 const initialMessages = [
   {
@@ -12,7 +12,7 @@ const initialMessages = [
   }
 ];
 
-export default function ChatInterface({ onGameRequest }) {
+export default function ChatInterface({ onGameRequest, setLoading }) {
   const [messages, setMessages] = useState(initialMessages);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -77,55 +77,55 @@ export default function ChatInterface({ onGameRequest }) {
 
   // Handle file selection with compression
   const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files);
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
-  
-    if (imageFiles.length === 0) return;
-  
-    const newUploadedImages = [...uploadedImages];
-  
-    imageFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-  
-          // Resize to max dimension 256px for dramatic reduction
-          const maxDim = 256;
-          let width = img.width;
-          let height = img.height;
-  
-          if (width > height) {
-            if (width > maxDim) {
-              height *= maxDim / width;
-              width = maxDim;
-            }
-          } else {
-            if (height > maxDim) {
-              width *= maxDim / height;
-              height = maxDim;
-            }
+  const files = Array.from(e.target.files);
+  const imageFiles = files.filter(file => file.type.startsWith('image/'));
+
+  if (imageFiles.length === 0) return;
+
+  const newUploadedImages = [...uploadedImages];
+
+  imageFiles.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+
+        // Resize to max dimension 256px for dramatic reduction
+        const maxDim = 256;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxDim) {
+            height *= maxDim / width;
+            width = maxDim;
           }
-  
-          canvas.width = width;
-          canvas.height = height;
-  
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-  
-          // Convert to base64 JPEG at 40% quality
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.4);
-  
-          newUploadedImages.push(compressedDataUrl);
-          setUploadedImages([...newUploadedImages]);
-        };
-        img.src = e.target.result;
+        } else {
+          if (height > maxDim) {
+            width *= maxDim / height;
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert to base64 JPEG at 40% quality
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.4);
+
+        newUploadedImages.push(compressedDataUrl);
+        setUploadedImages([...newUploadedImages]);
       };
-      reader.readAsDataURL(file);
-    });
-  };
-  
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
 
   // Handle file upload button click
   const handleUploadClick = () => {
@@ -145,8 +145,11 @@ export default function ChatInterface({ onGameRequest }) {
   };
 
   const processGameRequest = async (userMessage, imageUrls = []) => {
+    setLoading(true)
     console.log("processing user message", userMessage);
     console.log("with images", imageUrls.length);
+
+    
 
     // 1. Add user message with any attached images
     const messageContent = imageUrls.length > 0
@@ -313,6 +316,7 @@ export default function ChatInterface({ onGameRequest }) {
       ]);
     } finally {
       setIsTyping(false);
+      setLoading(false)
     }
   };
 
@@ -414,7 +418,7 @@ IMPORTANT:
                   <div className="flex flex-wrap gap-2">
                     {message.content.images.map((img, imgIndex) => (
                       <div key={imgIndex} className="border rounded overflow-hidden">
-                        <Image 
+                        <NextImage 
                           src={img} 
                           alt={`Uploaded image ${imgIndex + 1}`} 
                           width={150} 
@@ -479,7 +483,7 @@ IMPORTANT:
                 {uploadedImages.map((img, index) => (
                   <div key={index} className="relative inline-block">
                     <div className="w-16 h-16 border rounded overflow-hidden">
-                      <Image 
+                      <NextImage
                         src={img} 
                         alt={`Uploaded ${index}`} 
                         width={64} 

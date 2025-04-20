@@ -72,7 +72,7 @@ export default function CommunityPage() {
                 textShadow: '2px 2px 0px #4F46E5, 4px 4px 0px #2D3748',
                 fontFamily: '"Press Start 2P", cursive'
               }}>
-            PAPERPROTO COMMUNITY
+            PAPERPROTO ARCADE
           </h1>
         </div>
       </header>

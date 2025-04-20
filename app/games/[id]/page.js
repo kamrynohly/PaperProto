@@ -157,7 +157,7 @@ export default function GamePage({ params }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100">
+    <div className="flex flex-col min-h-screen bg-gray-900 text-gray-100">
       {/* Header with retro styling */}
       <header className="bg-indigo-900 border-b-4 border-pink-500 shadow-lg">
         <div className="container mx-auto py-6 px-4">
@@ -171,22 +171,23 @@ export default function GamePage({ params }) {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="flex-1 flex flex-col container mx-auto px-2 py-4">
         {/* Back button */}
         <Link href="/community" className="inline-flex items-center mb-6 text-indigo-400 hover:text-indigo-300 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
-          Back to Community
+          Back to Arcade
         </Link>
         
         {loading ? (
-          <div className="flex justify-center items-center h-64">
+          <div className="flex justify-center items-center">
             <div className="w-16 h-16 pixel-spinner"></div>
           </div>
         ) : game ? (
-          <div className="bg-gray-800 rounded-lg overflow-hidden border-2 border-gray-700 shadow-xl">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+         <div className="flex-1 bg-gray-800 rounded-lg overflow-hidden border-2 border-gray-700 shadow-xl flex">
+            <div className="grid grid-cols-1 lg:grid-cols-2 flex-1">
+              
               {/* Left side - Game info */}
               <div className="p-6 lg:p-8 flex flex-col">
                 <div className="flex justify-between items-start mb-4">
@@ -248,11 +249,13 @@ export default function GamePage({ params }) {
               </div>
               
               {/* Right side - Game canvas */}
+              <div className="flex-4">
               <GameDisplay 
-              gameCode={game.gameCode} 
-              gameType={game.title} 
-              loading={loading} 
+               gameCode={game.gameCode} 
+                gameType={game.title} 
+                loading={loading} 
               />
+           </div>
               
             </div>
           </div>
@@ -260,7 +263,7 @@ export default function GamePage({ params }) {
           <div className="bg-gray-800 rounded-lg p-8 text-center">
             <p className="text-xl text-gray-400">Game not found.</p>
             <Link href="/community" className="inline-block mt-4 px-4 py-2 bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors">
-              Return to Community
+              Return to Arcade
             </Link>
           </div>
         )}
