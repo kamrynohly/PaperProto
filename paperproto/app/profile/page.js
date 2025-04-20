@@ -1,4 +1,3 @@
-// app/dashboard/page.js
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -18,16 +17,14 @@ import {
   addDoc,
   serverTimestamp
 } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
 import { User, LogOut, Edit, Trophy, Heart, Star, Gamepad2 } from 'lucide-react';
-
 
 // Create the Dashboard component that will be wrapped with ProtectedRoute
 function DashboardContent() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { currentUser, userData, loading: authLoading, logout, db, refreshUserData } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -45,21 +42,148 @@ function DashboardContent() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // For testing purposes, use a static userId or fallback to demo data if auth fails
-        const userId = user?.uid || "demoUser";
-        const userDocRef = doc(db, "users", userId);
+        if (authLoading) return;
         
-        try {
+        // If user data already exists in context, use it as a base
+        if (userData) {
+          // Transform userData to match expected dashboard structure
+          const dashboardUserData = {
+            username: userData.username || "Unknown",
+            avatar: userData.avatar || null,
+            points: userData.points || 0,
+            gameCount: userData.gameCount || 0,
+            likeCount: userData.likeCount || 0,
+            avgRating: userData.avgRating || "--",
+            projects: []
+          };
+          
+          // Fetch projects if project_ids exists
+          if (userData.project_ids && userData.project_ids.length > 0) {
+            try {
+              const projectsData = [];
+              
+              // For each project ID, fetch project details
+              for (const projectId of userData.project_ids) {
+                const projectDoc = await getDoc(doc(db, "projects", projectId));
+                if (projectDoc.exists()) {
+                  projectsData.push({
+                    id: projectId,
+                    name: projectDoc.data().name,
+                    plays: projectDoc.data().plays || 0,
+                    likes: projectDoc.data().likes || 0,
+                    rating: projectDoc.data().rating || "N/A",
+                    image: projectDoc.data().image || null
+                  });
+                }
+              }
+              
+              dashboardUserData.projects = projectsData;
+            } catch (error) {
+              console.error("Error fetching projects:", error);
+            }
+          }
+          
+          // If no projects or fetch failed, use sample projects
+          if (!dashboardUserData.projects || dashboardUserData.projects.length === 0) {
+            dashboardUserData.projects = [
+              { id: 1, name: "Project 1", plays: 2000, likes: 1100 },
+              { id: 2, name: "Project 2", plays: 20, likes: 12 },
+              { id: 3, name: "Project 3", plays: 0, likes: 0 }
+            ];
+          }
+          
+          setDashboardData(dashboardUserData);
+          setLoading(false);
+          return;
+        }
+        
+        // If userData doesn't exist but user is authenticated, try to fetch data
+        if (currentUser) {
+          const userDocRef = doc(db, "users", currentUser.uid);
           const userDoc = await getDoc(userDocRef);
           
           if (userDoc.exists()) {
-            setUserData(userDoc.data());
+            const userDocData = userDoc.data();
+            
+            // Create user dashboard data
+            const dashboardUserData = {
+              username: userDocData.username || currentUser.displayName || "Unknown",
+              avatar: userDocData.avatar || null,
+              points: userDocData.points || 0,
+              gameCount: userDocData.gameCount || 0,
+              likeCount: userDocData.likeCount || 0,
+              avgRating: userDocData.avgRating || "--",
+              projects: []
+            };
+            
+            // Fetch projects if project_ids exists
+            if (userDocData.project_ids && userDocData.project_ids.length > 0) {
+              try {
+                const projectsData = [];
+                
+                // For each project ID, fetch project details
+                for (const projectId of userDocData.project_ids) {
+                  const projectDoc = await getDoc(doc(db, "projects", projectId));
+                  if (projectDoc.exists()) {
+                    projectsData.push({
+                      id: projectId,
+                      name: projectDoc.data().name,
+                      plays: projectDoc.data().plays || 0,
+                      likes: projectDoc.data().likes || 0,
+                      rating: projectDoc.data().rating || "N/A",
+                      image: projectDoc.data().image || null
+                    });
+                  }
+                }
+                
+                dashboardUserData.projects = projectsData;
+              } catch (error) {
+                console.error("Error fetching projects:", error);
+              }
+            }
+            
+            // If no projects or fetch failed, use sample projects
+            if (!dashboardUserData.projects || dashboardUserData.projects.length === 0) {
+              dashboardUserData.projects = [
+                { id: 1, name: "Example 1", plays: 2000, likes: 1100 },
+                { id: 2, name: "Example 2", plays: 20, likes: 12 },
+                { id: 3, name: "Example 3", plays: 0, likes: 0 }
+              ];
+            }
+            
+            setDashboardData(dashboardUserData);
+            setLoading(false);
+            
+            // Also refresh user data in the context
+            refreshUserData();
+            return;
           } else {
-            // If no user data is found, use the sample data instead
+            // If user document doesn't exist, create initial user data
             const initialUserData = {
-              username: user?.displayName || "My Cool Name",
-              avatar: user?.photoURL || null,
-              karmaScore: 112,
+              username: currentUser.displayName || "Unknown",
+              points: 0,
+              project_ids: [],
+              avatar: currentUser.photoURL || null,
+              email: currentUser.email,
+              createdAt: serverTimestamp()
+            };
+            
+            // Try to set the doc, but don't block rendering if it fails
+            try {
+              await setDoc(userDocRef, initialUserData);
+              // Also refresh user data in the context
+              refreshUserData();
+            } catch (e) {
+              console.warn("Couldn't save initial user data:", e);
+            }
+            
+            const dashboardUserData = {
+              username: initialUserData.username,
+              avatar: initialUserData.avatar,
+              points: initialUserData.points,
+              gameCount: initialUserData.gameCount || 0,
+              likeCount: initialUserData.likeCount || 0,
+              avgRating: initialUserData.avgRating || "--",
               projects: [
                 { id: 1, name: "Project 1", plays: 2000, likes: 1100 },
                 { id: 2, name: "Project 2", plays: 20, likes: 12 },
@@ -67,43 +191,38 @@ function DashboardContent() {
               ]
             };
             
-            // Try to set the doc, but don't block rendering if it fails
-            try {
-              await setDoc(userDocRef, initialUserData);
-            } catch (e) {
-              console.warn("Couldn't save initial user data:", e);
-            }
-            
-            setUserData(initialUserData);
+            setDashboardData(dashboardUserData);
+            setLoading(false);
+            return;
           }
-        } catch (e) {
-          console.error("Error accessing Firestore, using sample data:", e);
-          // Fallback to sample data if Firestore access fails
-          setUserData({
-            username: "My Cool Name",
-            avatar: null,
-            karmaScore: 112,
-            projects: [
-              { id: 1, name: "Project 1", plays: 2000, likes: 1100 },
-              { id: 2, name: "Project 2", plays: 20, likes: 12 },
-              { id: 3, name: "Project 3", plays: 0, likes: 0 }
-            ]
-          });
         }
+        
+        // Fallback to sample data if not authenticated or errors occur
+        setDashboardData({
+          username: "Unknown",
+          avatar: null,
+          points: 0,
+          gameCount: 0,
+          likeCount: 0,
+          avgRating: "--",
+          projects: [
+            { id: 1, name: "Example 1", plays: 2000, likes: 1100 },
+            { id: 2, name: "Example 2", plays: 20, likes: 12 },
+            { id: 3, name: "Example 3", plays: 0, likes: 0 }
+          ]
+        });
+        setLoading(false);
       } catch (error) {
         console.error("Error in user data setup:", error);
         // Ultimate fallback if everything fails
-        setUserData({
-          username: "My Cool Name",
+        setDashboardData({
+          username: "Error",
           avatar: null,
-          karmaScore: 112,
+          points: 0,
           projects: [
-            { id: 1, name: "Project 1", plays: 2000, likes: 1100 },
-            { id: 2, name: "Project 2", plays: 20, likes: 12 },
-            { id: 3, name: "Project 3", plays: 0, likes: 0 }
+            { id: 1, name: "Example", plays: 2000, likes: 1100 },
           ]
         });
-      } finally {
         setLoading(false);
       }
     };
@@ -113,14 +232,17 @@ function DashboardContent() {
       if (loading) {
         console.warn("Loading timeout reached, using fallback data");
         setLoading(false);
-        setUserData({
-          username: "My Cool Name",
+        setDashboardData({
+          username: "Unknown",
           avatar: null,
-          karmaScore: 112,
+          points: 0,
+          gameCount: 0,
+          likeCount: 0,
+          avgRating: "--",
           projects: [
-            { id: 1, name: "Project 1", plays: 2000, likes: 1100 },
-            { id: 2, name: "Project 2", plays: 20, likes: 12 },
-            { id: 3, name: "Project 3", plays: 0, likes: 0 }
+            { id: 1, name: "Example 1", plays: 2000, likes: 1100 },
+            { id: 2, name: "Example 2", plays: 20, likes: 12 },
+            { id: 3, name: "Example 3", plays: 0, likes: 0 }
           ]
         });
       }
@@ -129,11 +251,11 @@ function DashboardContent() {
     fetchUserData();
     
     return () => clearTimeout(timeoutId);
-  }, [user, loading]);
+  }, [currentUser, userData, authLoading, db, refreshUserData, loading]);
 
   // Handle profile image as base64 directly in Firestore
   const handleUploadProfileImage = async () => {
-    if (!file || !user) return;
+    if (!file || !currentUser) return;
     
     try {
       setUploading(true);
@@ -144,16 +266,19 @@ function DashboardContent() {
       reader.onload = async (e) => {
         const base64String = e.target.result;
         
-        // Update user data in state
-        setUserData(prev => ({
+        // Update dashboard data in state
+        setDashboardData(prev => ({
           ...prev,
           avatar: base64String
         }));
         
         // Update the user document in Firestore
-        await updateDoc(doc(db, "users", user.uid), { 
+        await updateDoc(doc(db, "users", currentUser.uid), { 
           avatar: base64String 
         });
+        
+        // Refresh user data in context
+        refreshUserData();
         
         setUploading(false);
         setFile(null);
@@ -180,29 +305,6 @@ function DashboardContent() {
     }
   }, [file]);
 
-  // Initialize with sample data if userData is still null after 1 second
-  useEffect(() => {
-    if (userData === null) {
-      const timer = setTimeout(() => {
-        console.log("Fallback to sample data due to timeout");
-        setUserData({
-          username: "My Cool Name",
-          avatar: null,
-          karmaScore: 112,
-          projects: [
-            { id: 1, name: "Project 1", plays: 2000, likes: 1100 },
-            { id: 2, name: "Project 2", plays: 20, likes: 12 },
-            { id: 3, name: "Project 3", plays: 0, likes: 0 }
-          ]
-        });
-        setLoading(false);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [userData]);
-
-
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100">
       {/* Header with retro styling */}
@@ -226,15 +328,15 @@ function DashboardContent() {
             {/* Profile Image with Pixelated Border */}
             <div className="relative mb-6 mx-auto">
               <div className="w-40 h-40 mx-auto border-4 border-pink-500 p-2 bg-gray-900">
-                {userData?.avatar ? (
+                {dashboardData?.avatar ? (
                   <img 
-                    src={userData?.avatar} 
+                    src={dashboardData?.avatar} 
                     alt="Profile" 
                     className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-indigo-900 text-pink-500 text-4xl font-bold">
-                    {userData?.username?.charAt(0) || "?"}
+                    {dashboardData?.username?.charAt(0) || "?"}
                   </div>
                 )}
               </div>
@@ -255,25 +357,25 @@ function DashboardContent() {
                   textShadow: '2px 2px 0px #4F46E5',
                   fontFamily: '"Press Start 2P", cursive'
                 }}>
-              {userData?.username}
+              {dashboardData?.username}
             </h1>
             
             {/* Stats Bar */}
             <div className="grid grid-cols-3 gap-2 mb-6 text-center">
               <div className="bg-gray-700 p-3 border-2 border-indigo-500 rounded-md">
                 <Trophy size={20} className="mx-auto mb-1 text-yellow-400" />
-                <span className="text-xl font-bold">12</span>
+                <span className="text-xl font-bold">{dashboardData?.gameCount}</span>
                 <p className="text-xs text-gray-400">GAMES</p>
               </div>
               <div className="bg-gray-700 p-3 border-2 border-indigo-500 rounded-md">
                 <Star size={20} className="mx-auto mb-1 text-yellow-400" />
-                <span className="text-xl font-bold">4.5</span>
+                <span className="text-xl font-bold">{dashboardData?.avgRating}</span>
                 <p className="text-xs text-gray-400">AVG RATING</p>
               </div>
               <div className="bg-gray-700 p-3 border-2 border-indigo-500 rounded-md">
                 <Heart size={20} className="mx-auto mb-1 text-red-500" />
-                <span className="text-xl font-bold">2.4k</span>
-                <p className="text-xs text-gray-400">TOTAL LIKES</p>
+                <span className="text-xl font-bold">{dashboardData?.points || "0"}</span>
+                <p className="text-xs text-gray-400">TOTAL POINTS</p>
               </div>
             </div>
             
@@ -310,7 +412,7 @@ function DashboardContent() {
                 <div className="col-span-2 flex justify-center items-center h-64">
                   <div className="w-16 h-16 pixel-spinner"></div>
                 </div>
-              ) : userData?.projects.map(project => (
+              ) : dashboardData?.projects.map(project => (
                 <div key={project.id} className="bg-gray-800 border-4 border-indigo-600 overflow-hidden rounded-lg transition-transform duration-200 hover:scale-105 shadow-[4px_4px_0px_0px_rgba(79,70,229)]">
                   <div className="relative h-40 bg-indigo-900">
                     {project.image ? (

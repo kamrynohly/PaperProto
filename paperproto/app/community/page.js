@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import BottomNavigation from '../../components/BottomNavigation';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -204,6 +205,7 @@ export default function CommunityPage() {
           )}
         </div>
       </main>
+      <BottomNavigation/>
     </div>
   );
 }
