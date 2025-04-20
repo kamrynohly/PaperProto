@@ -130,7 +130,7 @@ export async function POST(request) {
     const payload = {
         model: "claude-3-7-sonnet-20250219",
         messages: messages,
-        max_tokens: 64000,
+        max_tokens: 16000,
         temperature: 0.7
     };
 
