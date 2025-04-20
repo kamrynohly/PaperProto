@@ -4,30 +4,31 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { doc, getDoc, updateDoc, deleteField, increment } from 'firebase/firestore';
-import { db } from '../../../lib/firebase'; // You'll need to create this
+import { doc, getDoc, updateDoc, arrayRemove, increment, arrayUnion, onSnapshot } from 'firebase/firestore';
+import { db } from '../../../lib/firebase';
 import BottomNavigation from '../../../components/BottomNavigation';
 import GameDisplay from '../../../components/GameDisplay';
+import { useAuth } from '../../../contexts/AuthContext';
 
 export default function GamePage({ params }) {
   const router = useRouter();
-  const gameId = use(params).id; // Unwrap params with React.use()
+  const gameId = use(params).id;
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userRating, setUserRating] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
 
+  const { currentUser, userData } = useAuth();
+
+  // Initial data fetch
   useEffect(() => {
     const fetchGame = async () => {
       try {
-        // Fetch the game from Firestore using the unwrapped gameId
+        setLoading(true);
         const gameRef = doc(db, 'games', gameId);
         const gameSnap = await getDoc(gameRef);
         
-        console.log(gameSnap)
-
         if (gameSnap.exists()) {
-          // Convert the document to a game object with the document ID
           const gameData = {
             id: gameSnap.id,
             ...gameSnap.data()
@@ -35,28 +36,14 @@ export default function GamePage({ params }) {
           
           setGame(gameData);
 
-          // Add a view to the game!
-      
-          // Update the user's project_ids array to include the new game UUID
-          if (gameData) {
-            // Get a reference to the user's document
-            const gameRef = doc(db, "games", gameData.id);
-            
-            // Get the current project_ids array or initialize a new one if it doesn't exist
-            const currentPlays = gameData.playCount || 0;
-            await updateDoc(gameRef, {
-              playCount: currentPlays + 1
-            });
-          }
-
-          // Check if this game is in the user's favorites (would need user auth)
-          // This is a placeholder - implement user auth and user data fetching
-          // fetchUserGameData(gameId);
+          // Add a view count
+          const currentPlays = gameData.playCount || 0;
+          await updateDoc(gameRef, {
+            playCount: currentPlays + 1
+          });
         } else {
-          // Handle case when game is not found
           console.error("Game not found");
-          // Optional: redirect to 404 page
-          // router.push('/404');
+          setGame(null);
         }
         
         setLoading(false);
@@ -67,33 +54,157 @@ export default function GamePage({ params }) {
     };
 
     fetchGame();
-  }, [gameId, router]);
+  }, [gameId]);
 
-  const handleRatingClick = (rating) => {
+  // Real-time listener for favorites changes
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    console.log("Setting up real-time listener for user favorites");
+    
+    // Set up real-time listener on the user document
+    const userRef = doc(db, 'users', currentUser.uid);
+    const unsubscribe = onSnapshot(userRef, (userDoc) => {
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const favorites = userData.favorites || [];
+        console.log("Favorites updated in real-time:", favorites);
+        setIsFavorite(favorites.includes(gameId));
+      }
+    }, (error) => {
+      console.error("Error in favorites listener:", error);
+    });
+    
+    // Clean up listener when component unmounts
+    return () => {
+      console.log("Cleaning up favorites listener");
+      unsubscribe();
+    };
+  }, [currentUser, gameId]);
+  
+  // Real-time listener for game data changes
+  useEffect(() => {
+    console.log("Setting up real-time listener for game data");
+    
+    const gameRef = doc(db, 'games', gameId);
+    const unsubscribe = onSnapshot(gameRef, (gameDoc) => {
+      if (gameDoc.exists()) {
+        const gameData = {
+          id: gameDoc.id,
+          ...gameDoc.data()
+        };
+        console.log("Game data updated in real-time:", gameData);
+        setGame(gameData);
+      } else {
+        console.error("Game document no longer exists");
+        setGame(null);
+      }
+    }, (error) => {
+      console.error("Error in game data listener:", error);
+    });
+    
+    // Clean up listener when component unmounts
+    return () => {
+      console.log("Cleaning up game data listener");
+      unsubscribe();
+    };
+  }, [gameId]);
+
+  // Handle rating updates
+  useEffect(() => {
+    if (!currentUser || !game) return;
+    
+    // Check if user has already rated this game
+    const userRef = doc(db, 'users', currentUser.uid);
+    getDoc(userRef).then((userDoc) => {
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const ratings = userData.ratings || {};
+        if (ratings[gameId]) {
+          setUserRating(ratings[gameId]);
+        }
+      }
+    }).catch(error => {
+      console.error("Error fetching user ratings:", error);
+    });
+  }, [currentUser, gameId, game]);
+
+  const handleRatingClick = async (rating) => {
+    // Store the current rating before updating
+    const previousRating = userRating;
+    
+    // Update local state for immediate UI feedback
     setUserRating(rating);
-    // In a real app, you would send this to your API
-
-    console.log(`Rating game ${gameId} with ${rating} stars`);
+    
+    try {
+      // Make sure we have the game data and user
+      if (!game || !currentUser) {
+        console.error("Game data or user is not available");
+        return;
+      }
+      
+      // Get refs
+      const userRef = doc(db, 'users', currentUser.uid);
+      const gameRef = doc(db, 'games', gameId);
+      const creatorRef = doc(db, 'users', game.creator_id);
+      
+      // Get current user document to check for existing rating
+      const userDoc = await getDoc(userRef);
+      if (!userDoc.exists()) {
+        console.error("User document not found");
+        return;
+      }
+      
+      const userData = userDoc.data();
+      const userRatings = userData.ratings || {};
+      const storedPreviousRating = userRatings[gameId] || 0;
+      
+      // Get current game document to update ratings array
+      const gameDoc = await getDoc(gameRef);
+      if (!gameDoc.exists()) {
+        console.error("Game document not found");
+        return;
+      }
+      
+      const gameData = gameDoc.data();
+      const currentRatings = gameData.ratings || [];
+      let updatedRatings = [...currentRatings];
+      
+      // If user already rated, remove their previous rating
+      if (storedPreviousRating > 0) {
+        // Remove one instance of their previous rating
+        const index = updatedRatings.indexOf(storedPreviousRating);
+        if (index !== -1) {
+          updatedRatings.splice(index, 1);
+        }
+      }
+      
+      // Add new rating
+      updatedRatings.push(rating);
+      
+      // Calculate new average
+      const avgRating = updatedRatings.length > 0 
+        ? updatedRatings.reduce((sum, r) => sum + r, 0) / updatedRatings.length 
+        : 0;
+      
+      // Update game document with new ratings array and average
+      await updateDoc(gameRef, {
+        ratings: updatedRatings,
+        rating: avgRating // Update the avg_rating field
+      });
+      
+      // Update user document with their new rating
+      await updateDoc(userRef, {
+        [`ratings.${gameId}`]: rating
+      });
+      
+      console.log(`Updated rating for game ${gameId} to ${rating} stars (avg: ${avgRating.toFixed(1)})`);
+    } catch (error) {
+      // Revert UI state if operation fails
+      setUserRating(previousRating);
+      console.error("Error updating rating:", error);
+    }
   };
-
-  // const toggleFavorite = () => {
-  //   setIsFavorite(!isFavorite);
-  //   // In a real app, you would send this to your API
-  //   // Example implementation with user auth:
-  //   const gameRef = doc(db, 'games', game.id);
-  //   const userRef = doc(db, 'users', game.creator_id);
-
-  //   if (isFavorite) {
-  //     await updateDoc(userRef, {
-  //       [`favorites.${gameId}`]: true
-  //     });
-  //   } else {
-  //     await updateDoc(userRef, {
-  //       [`favorites.${gameId}`]: deleteField()
-  //     });
-  //   }
-  //   console.log(`${!isFavorite ? 'Adding' : 'Removing'} game ${gameId} ${!isFavorite ? 'to' : 'from'} favorites`);
-  // };
 
   const toggleFavorite = async () => {
     // Toggle state locally first for responsive UI
@@ -107,37 +218,49 @@ export default function GamePage({ params }) {
         return;
       }
       
-      // Need to import deleteField and update imports at the top
-      // import { doc, getDoc, updateDoc, deleteField } from 'firebase/firestore';
+      // Check if user data is available
+      if (!currentUser) {
+        console.error("User data is not available");
+        return;
+      }
       
+      // Get the current user reference
+      const userRef = doc(db, 'users', currentUser.uid);
       const gameRef = doc(db, 'games', game.id);
-      // Note: You might want to use the current user's ID instead of game.creator_id
-      // This would typically come from your auth system
-      const userRef = doc(db, 'users', game.creator_id);
+      const creatorRef = doc(db, 'users', game.creator_id)
       
       if (newFavoriteState) {
-        // Adding to favorites
+        // Adding to favorites - using arrayUnion to add to array
         await updateDoc(userRef, {
-          [`favorites.${gameId}`]: true
+          favorites: arrayUnion(gameId)  // This creates the array if it doesn't exist
         });
         
-        // Optionally update the game's favorite count if you track this
+        // Optionally update the game's favorite count
         await updateDoc(gameRef, {
           favCount: increment(1)
         });
+
+        // Update the creator's stats
+        await updateDoc(creatorRef, {
+          favCount: increment(1)
+        })
       } else {
-        // Removing from favorites
+        // Removing from favorites - using arrayRemove
         await updateDoc(userRef, {
-          [`favorites.${gameId}`]: deleteField()
+          favorites: arrayRemove(gameId)
         });
         
-        // Optionally update the game's favorite count if you track this
+        // Optionally update the game's favorite count
         await updateDoc(gameRef, {
           favCount: increment(-1)
         });
+
+        await updateDoc(creatorRef, {
+          favCount: increment(-1)
+        })
       }
       
-      console.log(`${newFavoriteState ? 'Added' : 'Removed'} game ${gameId} ${newFavoriteState ? 'to' : 'from'} favorites`);
+      console.log(`${newFavoriteState ? 'Added' : 'Removed'} game ${game.id} ${newFavoriteState ? 'to' : 'from'} favorites`);
     } catch (error) {
       // Revert UI state if operation fails
       setIsFavorite(!newFavoriteState);
@@ -221,23 +344,36 @@ export default function GamePage({ params }) {
                   <div className="mb-6">
                     <p className="text-gray-300 mb-2">Rate this game:</p>
                     <div className="flex items-center">
-                      {[1, 2, 3, 4, 5].map((rating) => (
-                        <button
-                          key={rating}
-                          onClick={() => handleRatingClick(rating)}
-                          className={`text-2xl mx-1 transition-colors ${userRating >= rating ? 'text-yellow-400' : 'text-gray-600 hover:text-yellow-300'}`}
-                          aria-label={`Rate ${rating} stars`}
-                        >
-                          ★
-                        </button>
-                      ))}
-                      {userRating > 0 && (
-                        <span className="ml-2 text-gray-300">Your rating: {userRating}</span>
-                      )}
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={() => handleRatingClick(star)}
+                            className={`text-2xl mx-1 transition-colors ${
+                              userRating >= star 
+                                ? 'text-yellow-400' 
+                                : 'text-gray-600 hover:text-yellow-300'
+                            }`}
+                            aria-label={`Rate ${star} stars`}
+                            disabled={!currentUser}
+                          >
+                            ★
+                          </button>
+                        ))}
+                      </div>
+                      <div className="ml-4">
+                        {userRating > 0 ? (
+                          <span className="text-gray-300 inline-block min-w-16">Your rating: {userRating}</span>
+                        ) : currentUser ? (
+                          <span className="text-gray-400 inline-block min-w-16">Not rated yet</span>
+                        ) : (
+                          <span className="text-gray-500 inline-block min-w-16">Sign in to rate</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                </div>
                   
-                  <div className="flex space-x-4">
+                <div className="flex space-x-4">
                     <button className="px-4 py-2 bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors">
                       Share Game
                     </button>
