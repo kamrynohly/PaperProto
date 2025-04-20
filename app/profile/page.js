@@ -53,7 +53,7 @@ function DashboardContent() {
             avatar: userData.avatar || null,
             points: userData.points || 0,
             gameCount: userData.gameCount || 0,
-            likeCount: userData.likeCount || 0,
+            favCount: userData.favCount || 0,
             avgRating: userData.avgRating || "--",
             projects: []
           };
@@ -71,8 +71,8 @@ function DashboardContent() {
                     id: projectId,
                     title: projectDoc.data().title || "Untitled Project",
                     description: projectDoc.data().description || "",
-                    plays: projectDoc.data().plays || 0,
-                    likes: projectDoc.data().likes || 0,
+                    playCount: projectDoc.data().playCount || 0,
+                    favCount: projectDoc.data().favCount || 0,
                     rating: projectDoc.data().rating || "N/A",
                     image: projectDoc.data().image || null
                   });
@@ -104,7 +104,7 @@ function DashboardContent() {
               avatar: userDocData.avatar || null,
               points: userDocData.points || 0,
               gameCount: userDocData.gameCount || 0,
-              likeCount: userDocData.likeCount || 0,
+              favCount: userDocData.favCount || 0,
               avgRating: userDocData.avgRating || "--",
               projects: []
             };
@@ -125,7 +125,7 @@ function DashboardContent() {
                       title: projectDoc.data().title || "Untitled Project",
                       description: projectDoc.data().description || "",
                       plays: projectDoc.data().plays || 0,
-                      likes: projectDoc.data().likes || 0,
+                      favCount: projectDoc.data().favCount || 0,
                       rating: projectDoc.data().rating || "N/A",
                       image: projectDoc.data().image || null
                     });
@@ -169,7 +169,7 @@ function DashboardContent() {
               avatar: initialUserData.avatar,
               points: initialUserData.points,
               gameCount: initialUserData.gameCount || 0,
-              likeCount: initialUserData.likeCount || 0,
+              favCount: initialUserData.favCount || 0,
               avgRating: initialUserData.avgRating || "--",
               projects: []
             };
@@ -186,7 +186,7 @@ function DashboardContent() {
           avatar: null,
           points: 0,
           gameCount: 0,
-          likeCount: 0,
+          favCount: 0,
           avgRating: "--",
           projects: []
         });
@@ -214,7 +214,7 @@ function DashboardContent() {
           avatar: null,
           points: 0,
           gameCount: 0,
-          likeCount: 0,
+          favCount: 0,
           avgRating: "--",
           projects: []
         });
@@ -414,11 +414,11 @@ function DashboardContent() {
                       <div className="flex space-x-4">
                         <div className="flex items-center">
                           <Gamepad2 size={16} className="mr-1 text-indigo-400" />
-                          <span>{project.plays || 0}</span>
+                          <span>{project.playCount || 0}</span>
                         </div>
                         <div className="flex items-center">
                           <Heart size={16} className="mr-1 text-red-500" />
-                          <span>{project.likes || 0}</span>
+                          <span>{project.favCount || 0}</span>
                         </div>
                       </div>
                       <div className="flex items-center">

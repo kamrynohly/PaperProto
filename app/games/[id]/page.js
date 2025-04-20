@@ -4,7 +4,7 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, deleteField, increment } from 'firebase/firestore';
 import { db } from '../../../lib/firebase'; // You'll need to create this
 import BottomNavigation from '../../../components/BottomNavigation';
 import GameDisplay from '../../../components/GameDisplay';
@@ -34,7 +34,21 @@ export default function GamePage({ params }) {
           };
           
           setGame(gameData);
-          
+
+          // Add a view to the game!
+      
+          // Update the user's project_ids array to include the new game UUID
+          if (gameData) {
+            // Get a reference to the user's document
+            const gameRef = doc(db, "games", gameData.id);
+            
+            // Get the current project_ids array or initialize a new one if it doesn't exist
+            const currentPlays = gameData.playCount || 0;
+            await updateDoc(gameRef, {
+              playCount: currentPlays + 1
+            });
+          }
+
           // Check if this game is in the user's favorites (would need user auth)
           // This is a placeholder - implement user auth and user data fetching
           // fetchUserGameData(gameId);
@@ -62,21 +76,73 @@ export default function GamePage({ params }) {
     console.log(`Rating game ${gameId} with ${rating} stars`);
   };
 
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-    // In a real app, you would send this to your API
-    // Example implementation with user auth:
-      // const userRef = doc(db, 'users', currentUser.uid);
-      // if (newFavoriteState) {
-      //   await updateDoc(userRef, {
-      //     [`favorites.${gameId}`]: true
-      //   });
-      // } else {
-      //   await updateDoc(userRef, {
-      //     [`favorites.${gameId}`]: deleteField()
-      //   });
-      // }
-    console.log(`${!isFavorite ? 'Adding' : 'Removing'} game ${gameId} ${!isFavorite ? 'to' : 'from'} favorites`);
+  // const toggleFavorite = () => {
+  //   setIsFavorite(!isFavorite);
+  //   // In a real app, you would send this to your API
+  //   // Example implementation with user auth:
+  //   const gameRef = doc(db, 'games', game.id);
+  //   const userRef = doc(db, 'users', game.creator_id);
+
+  //   if (isFavorite) {
+  //     await updateDoc(userRef, {
+  //       [`favorites.${gameId}`]: true
+  //     });
+  //   } else {
+  //     await updateDoc(userRef, {
+  //       [`favorites.${gameId}`]: deleteField()
+  //     });
+  //   }
+  //   console.log(`${!isFavorite ? 'Adding' : 'Removing'} game ${gameId} ${!isFavorite ? 'to' : 'from'} favorites`);
+  // };
+
+  const toggleFavorite = async () => {
+    // Toggle state locally first for responsive UI
+    const newFavoriteState = !isFavorite;
+    setIsFavorite(newFavoriteState);
+    
+    try {
+      // Make sure we have the game data
+      if (!game) {
+        console.error("Game data is not available");
+        return;
+      }
+      
+      // Need to import deleteField and update imports at the top
+      // import { doc, getDoc, updateDoc, deleteField } from 'firebase/firestore';
+      
+      const gameRef = doc(db, 'games', game.id);
+      // Note: You might want to use the current user's ID instead of game.creator_id
+      // This would typically come from your auth system
+      const userRef = doc(db, 'users', game.creator_id);
+      
+      if (newFavoriteState) {
+        // Adding to favorites
+        await updateDoc(userRef, {
+          [`favorites.${gameId}`]: true
+        });
+        
+        // Optionally update the game's favorite count if you track this
+        await updateDoc(gameRef, {
+          favCount: increment(1)
+        });
+      } else {
+        // Removing from favorites
+        await updateDoc(userRef, {
+          [`favorites.${gameId}`]: deleteField()
+        });
+        
+        // Optionally update the game's favorite count if you track this
+        await updateDoc(gameRef, {
+          favCount: increment(-1)
+        });
+      }
+      
+      console.log(`${newFavoriteState ? 'Added' : 'Removed'} game ${gameId} ${newFavoriteState ? 'to' : 'from'} favorites`);
+    } catch (error) {
+      // Revert UI state if operation fails
+      setIsFavorite(!newFavoriteState);
+      console.error("Error updating favorites:", error);
+    }
   };
 
   const formatPlays = (plays) => {
@@ -143,7 +209,7 @@ export default function GamePage({ params }) {
                     </svg>
                     <span className="ml-1 font-bold">{game.rating ? game.rating.toFixed(1) : '0.0'}</span>
                   </div>
-                  <span className="text-gray-400">{formatPlays(game.plays)} plays</span>
+                  <span className="text-gray-400">{formatPlays(game.playCount)} plays</span>
                 </div>
                 
                 <div className="prose prose-invert max-w-none mb-8 flex-grow">

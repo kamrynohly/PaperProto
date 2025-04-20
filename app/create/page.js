@@ -107,11 +107,15 @@ export default function Home() {
         
         // Get the current project_ids array or initialize a new one if it doesn't exist
         const currentProjectIds = userData.project_ids || [];
+
+        // Get current number of games
+        const gameCount = userData.gameCount || 0;
         
         // Add the new game UUID to the array if it's not already there
         if (!currentProjectIds.includes(gameUuid)) {
           // Update the user document to include the new game in project_ids
           await updateDoc(userRef, {
+            gameCount: gameCount + 1,
             project_ids: [...currentProjectIds, gameUuid]
           });
           
