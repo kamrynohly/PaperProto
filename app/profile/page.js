@@ -446,7 +446,7 @@ function DashboardContent() {
                     No Games Yet
                   </h3>
                   <p className="text-gray-400 mb-6">
-                    You haven't created any games yet. Click the button below to get started!
+                    You have not created any games yet. Click the button below to get started!
                   </p>
                   {/* <button className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 border-2 border-indigo-400 inline-flex items-center transition-colors duration-200 rounded-md shadow-[2px_2px_0px_0px_rgba(79,70,229)]">
                     <span className="text-2xl mr-2">+</span> Create Your First Game
