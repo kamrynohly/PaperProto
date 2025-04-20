@@ -9,6 +9,7 @@ import { db } from '../../../lib/firebase';
 import BottomNavigation from '../../../components/BottomNavigation';
 import GameDisplay from '../../../components/GameDisplay';
 import { useAuth } from '../../../contexts/AuthContext';
+import RetroLeaderboard from '../../../components/RetroLeaderboard';
 
 export default function GamePage({ params }) {
   const router = useRouter();
@@ -294,7 +295,7 @@ export default function GamePage({ params }) {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col container mx-auto px-2 py-4">
+      <main className="flex-1 flex flex-col container mx-auto px-4 py-4">
         {/* Back button */}
         <Link href="/community" className="inline-flex items-center mb-6 text-indigo-400 hover:text-indigo-300 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
@@ -333,11 +334,16 @@ export default function GamePage({ params }) {
                     </svg>
                     <span className="ml-1 font-bold">{game.rating ? game.rating.toFixed(1) : '0.0'}</span>
                   </div>
-                  <span className="text-gray-400">{formatPlays(game.playCount)} plays</span>
+                  <span className="text-gray-400">{formatPlays(game.plays)} plays</span>
                 </div>
                 
-                <div className="prose prose-invert max-w-none mb-8 flex-grow">
+                <div className="prose prose-invert max-w-none mb-8">
                   <p className="text-gray-300">{game.description}</p>
+                </div>
+                
+                {/* Leaderboard */}
+                <div className="mt-4 mb-6">
+                  <RetroLeaderboard gameId={gameId} />
                 </div>
                 
                 <div className="mt-auto">
@@ -386,12 +392,12 @@ export default function GamePage({ params }) {
               
               {/* Right side - Game canvas */}
               <div className="flex-4">
-              <GameDisplay 
-               gameCode={game.gameCode} 
-                gameType={game.title} 
-                loading={loading} 
-              />
-           </div>
+                <GameDisplay 
+                  gameCode={game.gameCode} 
+                  gameType={game.title} 
+                  loading={loading} 
+                />
+              </div>
               
             </div>
           </div>
