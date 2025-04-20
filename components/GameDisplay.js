@@ -147,7 +147,7 @@ export default function GameDisplay({ gameCode, gameType, loading }) {
               What would you like to play?
             </p>
             <p className="text-sm text-pink-400 font-normal">
-              Describe your game and I'll create it for you!
+              Describe your game and I will create it for you!
             </p>
           </div>
         )}
