@@ -131,9 +131,9 @@ export default function GameDisplay({ gameCode, gameType, loading }) {
             </div>
             {/* Loading message */}
             <div className="absolute bottom-30 left-0 right-0 text-center">
-              <p className="text-lg font-medium retro-text text-indigo-300">
+              {/* <p className="text-lg font-medium retro-text text-indigo-300">
                 Play while we cook!
-              </p>
+              </p> */}
             </div>
           </div>
         ) : gameCode ? (
