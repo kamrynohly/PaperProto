@@ -299,8 +299,6 @@ export default function Home() {
           </div>
         </div>
       )}
-
-      {/* Optional: Scanline effect for CRT feel */}
       <div className="fixed inset-0 pointer-events-none scanline opacity-30"></div>
     </div>
   );

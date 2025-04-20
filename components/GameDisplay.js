@@ -54,9 +54,9 @@ export default function GameDisplay({ gameCode, gameType, loading }) {
       if (cssMatch) cssContent = cssMatch[1];
       if (jsMatch)  jsContent  = jsMatch[1];
 
-      // Write into iframe
+      // Write into iframe with dark theme
       setTimeout(() => {
-        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        const doc = iframe.contentDocument;
         doc.open();
         doc.write(`
           <!DOCTYPE html>
@@ -65,13 +65,16 @@ export default function GameDisplay({ gameCode, gameType, loading }) {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <title>${gameTitle || 'Game'}</title>
+            <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
             <style>
               body {
                 margin:0; padding:0;
                 overflow:hidden;
                 display:flex; justify-content:center; align-items:center;
                 width:100%; height:100%;
-                background-color: #f8f9fa;
+                background-color: #161B22;
+                color: #FFFFFF;
+                font-family: 'Pixelify Sans', sans-serif;
               }
               ${cssContent}
             </style>
@@ -109,8 +112,8 @@ export default function GameDisplay({ gameCode, gameType, loading }) {
     } catch (error) {
       console.error('Error rendering game:', error);
       gameContainerRef.current.innerHTML = `
-        <div class="p-4 bg-red-100 text-red-800 rounded-lg">
-          <p class="font-bold">Error rendering game:</p>
+        <div class="p-4 bg-indigo-900 text-red-300 rounded-lg pixel-border">
+          <p class="font-bold retro-text text-sm">Error rendering game:</p>
           <p>${error.message}</p>
         </div>
       `;
@@ -119,34 +122,32 @@ export default function GameDisplay({ gameCode, gameType, loading }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 flex items-center justify-center bg-gray-50 p-2">
+      <div className="flex-1 flex items-center justify-center bg-gray-900 p-2">
         {loading ? (
           <div className="relative w-full h-full flex flex-col">
             {/* Dino fallback */}
-            <div className="flex-1 w-full h-full pixel-border rounded-lg overflow-hidden">
+            <div className="flex-1 w-full h-full pixel-border rounded-lg overflow-hidden bg-gray-800 crt-on">
               <DinoGame />
             </div>
             {/* Loading message */}
-            <div className="absolute bottom-10 left-0 right-0 text-center z-10">
-                <p className="text-lg font-medium retro-text">
-                    Play while we cook!
-                </p>
+            <div className="absolute bottom-30 left-0 right-0 text-center z-10">
+              <p className="text-lg font-medium retro-text text-indigo-300">
+                Play while we cook!
+              </p>
             </div>
           </div>
         ) : gameCode ? (
           <div
             ref={gameContainerRef}
-            className="w-full h-full flex items-center justify-center overflow-auto"
+            className="w-full h-full flex items-center justify-center overflow-auto pixel-border rounded-lg bg-gray-800 crt-on"
           />
         ) : (
-          <div className="text-center max-w-md">
-            <img
-              src="/game-controller.svg"
-              alt="Game controller"
-              className="w-16 h-16 mx-auto mb-6 text-gray-400"
-            />
-            <p className="text-lg font-medium text-gray-700 mb-2">
-              Tell Claude what game you would like to play
+          <div className="text-center max-w-md bg-gray-800 p-8 rounded-lg pixel-border crt-on">
+            <p className="text-lg font-medium retro-text text-indigo-300 mb-2">
+              What would you like to play?
+            </p>
+            <p className="text-sm text-pink-400 font-normal">
+              Describe your game and I'll create it for you!
             </p>
           </div>
         )}

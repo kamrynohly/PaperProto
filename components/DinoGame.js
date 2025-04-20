@@ -184,7 +184,7 @@ export default function DinoGame() {
           cacti.push(c);
           moveObstacle(c);
           spawnCactus();
-        }, Math.random() * 3000 + 3000);
+        }, Math.random() * 3000 + 1000);
       }
 
       function spawnCloud() {
@@ -199,7 +199,7 @@ export default function DinoGame() {
           clouds.push(cl);
           moveCloud(cl);
           spawnCloud();
-        }, Math.random() * 3000 + 5000);
+        }, Math.random() * 3000 + 2000);
       }
 
       function moveObstacle(el) {
