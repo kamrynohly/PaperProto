@@ -25,18 +25,73 @@ export async function POST(request) {
     console.log("Message formats:", messages.map(msg => ({
       role: msg.role,
       contentType: typeof msg.content,
-      isArray: Array.isArray(msg.content)
+      isArray: Array.isArray(msg.content),
+      hasImages: msg.hasImages || false
     })));
     
-    // Fix message formats - ensure all are valid
-    for (let i = 0; i < messages.length; i++) {
-      if (messages[i].content === undefined || messages[i].content === null) {
-        console.log(`⚠️ Fixing undefined/null content in message ${i}`);
-        messages[i].content = "";
+    // Process user messages with images
+    // Process user messages with images
+for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    
+    // Handle user messages with images
+    if (msg.role === 'user' && msg.hasImages === true && typeof msg.content === 'object' && !Array.isArray(msg.content)) {
+      console.log(`🖼️ Processing user message with images at index ${i}`);
+      
+      const { text, images } = msg.content;
+      
+      // Convert to multimodal format
+      const multiModalContent = [
+        { type: 'text', text: text || '' }
+      ];
+      
+      // Add images
+      if (Array.isArray(images) && images.length > 0) {
+        console.log(`Found ${images.length} images to process`);
+        
+        for (let j = 0; j < images.length; j++) {
+          const imgUrl = images[j];
+          
+          // Strip the data URL prefix
+          const base64Data = imgUrl.replace(/^data:image\/\w+;base64,/, '');
+          
+          multiModalContent.push({
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: 'image/jpeg',
+              data: base64Data
+            }
+          });
+          
+          console.log(`Processed image ${j+1}, data length: ${base64Data.length} chars`);
+        }
       }
+      
+      // Replace the original content with the multimodal format
+      messages[i] = {
+        role: msg.role,
+        content: multiModalContent
+      };
+      
+      console.log(`✅ Converted message ${i} to multimodal format with ${multiModalContent.length - 1} images`);
     }
     
+    // Remove hasImages property from all messages before sending to API
+    if (messages[i].hasImages !== undefined) {
+      delete messages[i].hasImages;
+    }
+    
+    // Fix undefined/null content
+    if (messages[i].content === undefined || messages[i].content === null) {
+      console.log(`⚠️ Fixing undefined/null content in message ${i}`);
+      messages[i].content = "";
+    }
+  }
+    
+    // Check if any message has multimodal content after processing
     const hasMultimodal = messages.some(msg => Array.isArray(msg.content));
+    console.log("🖼️ Contains multimodal content:", hasMultimodal);
     
     // Validate message format
     for (let i = 0; i < messages.length; i++) {
@@ -51,17 +106,23 @@ export async function POST(request) {
         );
       }
       
-      // Fix invalid content formats
-      if (msg.content === undefined || msg.content === null) {
-        console.log(`⚠️ Fixing null/undefined content in message ${i}`);
-        messages[i].content = "";
-      } else if (typeof msg.content === 'object' && !Array.isArray(msg.content)) {
-        // Convert object content (not array) to string
-        console.log(`⚠️ Converting object content to string in message ${i}`);
+      // Fix non-array object content
+      if (typeof msg.content === 'object' && !Array.isArray(msg.content)) {
+        console.log(`⚠️ Converting object content to multimodal format in message ${i}`);
         try {
-          messages[i].content = JSON.stringify(msg.content);
+          // Try to extract text content if any
+          let textContent = '';
+          if (msg.content.text) {
+            textContent = msg.content.text;
+          } else {
+            textContent = JSON.stringify(msg.content);
+          }
+          
+          // Convert to multimodal format with just text
+          messages[i].content = [{ type: 'text', text: textContent }];
         } catch (e) {
-          messages[i].content = ""; // Fallback if can't stringify
+          console.error(`❌ Error converting object content:`, e);
+          messages[i].content = [{ type: 'text', text: '' }]; // Fallback if can't stringify
         }
       }
       
@@ -71,7 +132,7 @@ export async function POST(request) {
         for (let j = 0; j < msg.content.length; j++) {
           const item = msg.content[j];
           if (!item.type || (item.type !== 'text' && item.type !== 'image')) {
-            console.error(`❌ Invalid content type in message ${i}, item ${j}`);
+            console.error(`❌ Invalid content type in message ${i}, item ${j}:`, item.type);
             return NextResponse.json(
               { message: `Invalid content type in message ${i}, item ${j}` },
               { status: 400 }
@@ -81,17 +142,54 @@ export async function POST(request) {
           // For text items, validate text field
           if (item.type === 'text' && typeof item.text !== 'string') {
             console.error(`❌ Missing text field in message ${i}, item ${j}`);
-            messages[i].content[j].text = ""; // Fix it
+            // Fix it with empty string
+            messages[i].content[j].text = "";
           }
           
           // For image items, validate source field
           if (item.type === 'image') {
             if (!item.source || !item.source.type || !item.source.media_type || !item.source.data) {
               console.error(`❌ Invalid image source in message ${i}, item ${j}`);
+              
+              // Log detailed diagnostic info
+              console.error('Image source details:', {
+                hasSource: !!item.source,
+                sourceType: item.source?.type,
+                mediaType: item.source?.media_type,
+                hasData: !!item.source?.data,
+                dataLength: item.source?.data?.length || 0
+              });
+              
               return NextResponse.json(
                 { message: `Invalid image source in message ${i}, item ${j}` },
                 { status: 400 }
               );
+            }
+            
+            // Verify base64 data for image
+            if (item.source.type === 'base64') {
+              // Log info about the image data
+              console.log(`🖼️ Image in message ${i}, item ${j}:`);
+              console.log(`  - Media type: ${item.source.media_type}`);
+              console.log(`  - Data length: ${item.source.data.length} characters`);
+              
+              // Fix media_type if not properly set
+              if (!item.source.media_type.startsWith('image/')) {
+                console.warn(`⚠️ Fixing invalid media_type in message ${i}, item ${j}`);
+                messages[i].content[j].source.media_type = 'image/jpeg';
+              }
+              
+              // Ensure data is actually base64
+              try {
+                // Try to decode a small sample to verify it's valid base64
+                atob(item.source.data.substring(0, 10));
+              } catch (e) {
+                console.error(`❌ Invalid base64 data in message ${i}, item ${j}:`, e.message);
+                return NextResponse.json(
+                  { message: `Invalid base64 data in message ${i}, item ${j}` },
+                  { status: 400 }
+                );
+              }
             }
           }
         }
@@ -112,30 +210,40 @@ export async function POST(request) {
     );
     
     if (hasInconsistentFormat) {
-      console.error("❌ Inconsistent message format: all messages must use same content format");
+      console.log("⚠️ Inconsistent message format: converting all to array format");
       
       // Convert all messages to array format for consistency
       for (let i = 0; i < messages.length; i++) {
         if (!Array.isArray(messages[i].content)) {
+          const originalContent = messages[i].content;
           messages[i] = {
             role: messages[i].role,
-            content: [{ type: 'text', text: messages[i].content }]
+            content: [{ type: 'text', text: originalContent }]
           };
         }
       }
       
-      console.log("✅ Automatically converted all messages to array format for consistency");
+      console.log("✅ All messages converted to array format for consistency");
     }
 
     const payload = {
-        model: "claude-3-7-sonnet-20250219",
-        messages: messages,
-        max_tokens: 16000,
-        temperature: 0.7
+      model: "claude-3-7-sonnet-20250219",
+      messages: messages,
+      max_tokens: 16000,
+      temperature: 0.7
     };
 
     if (system) {
       payload.system = system;
+    }
+
+    // Check payload size
+    const payloadStringified = JSON.stringify(payload);
+    const payloadSizeMB = (payloadStringified.length / 1024 / 1024).toFixed(2);
+    console.log(`📊 Payload size: ${payloadSizeMB} MB`);
+    
+    if (parseFloat(payloadSizeMB) > 20) {
+      console.warn(`⚠️ Large payload detected (${payloadSizeMB} MB) - may exceed API limits`);
     }
 
     console.log("🚀 Sending request to Claude API");
@@ -153,7 +261,7 @@ export async function POST(request) {
                   ...item,
                   source: {
                     ...item.source,
-                    data: '[BASE64_DATA]'
+                    data: `[BASE64_DATA: ${item.source.data.length} chars]`
                   }
                 };
               }
@@ -164,7 +272,7 @@ export async function POST(request) {
         return msg;
       });
     }
-    console.log("📦 Payload sample:", JSON.stringify(samplePayload).substring(0, 500) + "...");
+    console.log("📦 Payload sample:", JSON.stringify(samplePayload).substring(0, 1000) + "...");
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -173,14 +281,27 @@ export async function POST(request) {
         'x-api-key': API_KEY,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify(payload),
+      body: payloadStringified,
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null) || await response.text();
-      console.error("❌ Error from Claude API:", errorData);
+      let errorDetails = "Unknown error";
+      try {
+        const errorData = await response.json();
+        errorDetails = JSON.stringify(errorData);
+        console.error("❌ Error from Claude API:", errorData);
+      } catch (e) {
+        // If can't parse as JSON, try to get text
+        errorDetails = await response.text();
+        console.error("❌ Error from Claude API (text):", errorDetails);
+      }
+      
       return NextResponse.json(
-        { message: 'Error from Claude API', status: response.status, error: errorData },
+        { 
+          message: 'Error from Claude API', 
+          status: response.status, 
+          error: errorDetails
+        },
         { status: response.status }
       );
     }

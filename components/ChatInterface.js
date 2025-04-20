@@ -77,56 +77,59 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
 
   // Handle file selection with compression
   const handleFileSelect = (e) => {
-  const files = Array.from(e.target.files);
-  const imageFiles = files.filter(file => file.type.startsWith('image/'));
-
-  if (imageFiles.length === 0) return;
-
-  const newUploadedImages = [...uploadedImages];
-
-  imageFiles.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-
-        // Resize to max dimension 256px for dramatic reduction
-        const maxDim = 256;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxDim) {
-            height *= maxDim / width;
-            width = maxDim;
+    const files = Array.from(e.target.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+  
+    if (imageFiles.length === 0) return;
+  
+    const newUploadedImages = [...uploadedImages];
+  
+    imageFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+  
+          // Resize to max dimension 128px for even smaller size
+          const maxDim = 128;
+          let width = img.width;
+          let height = img.height;
+  
+          if (width > height) {
+            if (width > maxDim) {
+              height *= maxDim / width;
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width *= maxDim / height;
+              height = maxDim;
+            }
           }
-        } else {
-          if (height > maxDim) {
-            width *= maxDim / height;
-            height = maxDim;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Convert to base64 JPEG at 40% quality
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.4);
-
-        newUploadedImages.push(compressedDataUrl);
-        setUploadedImages([...newUploadedImages]);
+  
+          canvas.width = width;
+          canvas.height = height;
+  
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+  
+          // Convert to base64 JPEG at 25% quality for smaller size
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.25);
+          
+          // Log the size for debugging
+          console.log(`Image compressed. Size: ~${Math.round(compressedDataUrl.length / 1024)}KB`);
+          
+          // Store the full data URL
+          newUploadedImages.push(compressedDataUrl);
+          setUploadedImages([...newUploadedImages]);
+        };
+        img.src = e.target.result;
       };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
-};
-
-
+      reader.readAsDataURL(file);
+    });
+  };
+  
   // Handle file upload button click
   const handleUploadClick = () => {
     fileInputRef.current.click();
@@ -145,32 +148,46 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
   };
 
   const processGameRequest = async (userMessage, imageUrls = []) => {
-    setLoading(true)
-    console.log("processing user message", userMessage);
-    console.log("with images", imageUrls.length);
-
+    setLoading(true);
+    console.log("Processing user message:", userMessage);
+    console.log("With images:", imageUrls.length);
     
-
+    // Debug image sizes if any
+    if (imageUrls.length > 0) {
+      console.log("Image sizes:");
+      imageUrls.forEach((img, idx) => {
+        console.log(`Image ${idx+1}: ~${Math.round(img.length / 1024)}KB`);
+      });
+    }
+  
     // 1. Add user message with any attached images
-    const messageContent = imageUrls.length > 0
-      ? { text: userMessage, images: imageUrls }
-      : userMessage;
-      
-    const updatedMessages = [...messages, { 
-      role: 'user', 
-      content: messageContent,
-      hasImages: imageUrls.length > 0
-    }];
+    // Ensure text is never empty - add default text if user didn't provide any
+    const messageText = userMessage.trim() || (imageUrls.length > 0 ? "Make a game based on this image." : "Make me a game.");
+    
+    // Create user message object - only add hasImages property when there are images
+    let userMessageObj = { 
+      role: 'user'
+    };
+    
+    if (imageUrls.length > 0) {
+      userMessageObj.content = { text: messageText, images: imageUrls };
+      userMessageObj.hasImages = true;
+    } else {
+      userMessageObj.content = messageText;
+      // Don't add hasImages property for text-only messages
+    }
+    
+    const updatedMessages = [...messages, userMessageObj];
     
     setMessages(updatedMessages);
     setInput('');
     setIsTyping(true);
     setUploadedImages([]);
-
+  
     try {
       // 2. Build system prompt based on current development step
-      const systemPrompt = buildSystemPrompt(userMessage, developmentStep);
-
+      const systemPrompt = buildSystemPrompt(messageText, developmentStep);
+  
       // 3. Send to Claude - include ALL text messages but optimize code messages
       // Create a copy of messages to modify for sending to Claude
       const messagesForClaude = updatedMessages.map((message, index) => {
@@ -178,7 +195,8 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
         if (message.role === 'user') {
           return {
             role: message.role,
-            content: message.content
+            content: message.content,
+            hasImages: message.hasImages || false
           };
         }
         
@@ -211,44 +229,19 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
         };
       });
       
-      // Handle image messages appropriately
-      const claudeMessages = messagesForClaude.map(m => {
-        // Format messages with images properly for Claude's API
-        if (m.hasImages && typeof m.content === 'object') {
-          return {
-            role: m.role,
-            content: [
-              { type: 'text', text: m.content.text || '' },
-              ...m.content.images.map(imgUrl => ({ 
-                type: 'image', 
-                source: { 
-                  type: 'base64', 
-                  media_type: 'image/jpeg', 
-                  data: imgUrl.replace(/^data:image\/\w+;base64,/, '') 
-                } 
-              }))
-            ]
-          };
-        }
-        
-        // Regular text message
-        return {
-          role: m.role,
-          content: m.content
-        };
-      });
+      // We don't handle image messages here, that's now done on the server side
       
-      const response = await sendMessageToClaude(claudeMessages, systemPrompt);
+      const response = await sendMessageToClaude(messagesForClaude, systemPrompt);
       const claudeResponse = response.content[0].text;
-      console.log("claude response received, length:", claudeResponse.length);
-
+      console.log("Claude response received, length:", claudeResponse.length);
+  
       // 4. Extract conversation text by removing the marker blocks
       const conversationResponse = claudeResponse
         .replace(/---GAME_TYPE_START---[\s\S]*?---GAME_TYPE_END---/g, '')
         .replace(/---GAME_CODE_START---[\s\S]*?---GAME_CODE_END---/g, '')
         .replace(/---GAME_STEPS_START---[\s\S]*?---GAME_STEPS_END---/g, '')
         .trim();
-
+  
       // 5. Extract game type, steps, and code from Claude's response
       let gameType = currentGameType;
       let gameCode = currentGameCode;
@@ -260,14 +253,14 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
         gameType = typeMatch[1].trim();
         setCurrentGameType(gameType);
       }
-
+  
       // Extract game steps if present
       const stepsMatch = claudeResponse.match(/---GAME_STEPS_START---([\s\S]*?)---GAME_STEPS_END---/);
       if (stepsMatch?.[1]) {
         extractedSteps = stepsMatch[1].trim().split('\n');
         setGameSteps(extractedSteps);
       }
-
+  
       // Extract code if present
       const codeMatch = claudeResponse.match(/---GAME_CODE_START---([\s\S]*?)---GAME_CODE_END---/);
       if (codeMatch?.[1]) {
@@ -275,7 +268,7 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
         gameCode = codeMatch[1].trim();
         setCurrentGameCode(gameCode);
       }
-
+  
       // 6. Determine new development step
       if (developmentStep === 0 && gameType && gameCode) {
         // First time setup completed - move to improvement cycle
@@ -285,7 +278,7 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
         // Stay in improvement cycle (step 1)
         setDevelopmentStep(1);
       }
-
+  
       // 7. Append Claude's reply if non-empty - only store the display text
       if (conversationResponse) {
         // To save on tokens, potentially trim older messages if the chat gets too long
@@ -304,7 +297,7 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
       } else {
         console.warn('Skipping empty assistant message');
       }
-
+  
     } catch (error) {
       console.error('Error processing game request:', error);
       setMessages([
@@ -316,7 +309,7 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
       ]);
     } finally {
       setIsTyping(false);
-      setLoading(false)
+      setLoading(false);
     }
   };
 
@@ -357,6 +350,7 @@ IMPORTANT:
 - Make sure the code does not exceed size limitations
 - Never reference external images, create all of your own images
 - If the user does not ask for a specific style, pick a fun fitting style with animations
+- If the user just attaches an image and doesnt specify what game, it is atari breakout
 - Never end your responses with a colon`;
     }
     
@@ -510,9 +504,6 @@ IMPORTANT:
                   </button>
                 )}
               </div>
-              {/* <div className="text-xs text-indigo-300 retro-text">
-                Max 3 images for game inspiration
-              </div> */}
             </div>
           )}
           
