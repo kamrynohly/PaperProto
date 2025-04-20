@@ -39,6 +39,9 @@ function DashboardContent() {
   const [editPreview, setEditPreview] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  // SHARE
+  const [showCopyNotification, setShowCopyNotification] = useState(false);
+
   // Handle logout function
   const handleLogout = async () => {
     try {
@@ -366,6 +369,26 @@ function DashboardContent() {
     }
   };
 
+  const handleShare = (gameId) => {
+    // Create the game URL
+    const gameUrl = `https://paper-proto-one.vercel.app/games/${gameId}`;
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(gameUrl)
+      .then(() => {
+        // Show notification
+        setShowCopyNotification(true);
+        
+        // Hide notification after 2.5 seconds
+        setTimeout(() => {
+          setShowCopyNotification(false);
+        }, 2500);
+      })
+      .catch(err => {
+        console.error('Failed to copy: ', err);
+      });
+  };
+
   // --------------------------------------------------
   //  RENDER
   // --------------------------------------------------
@@ -473,9 +496,11 @@ function DashboardContent() {
                 <Gamepad2 size={24} className="inline mr-2 text-pink-400" /> 
                 MY GAMES
               </h2>
-              <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 border-2 border-indigo-400 flex items-center transition-colors duration-200 rounded-md shadow-[2px_2px_0px_0px_rgba(79,70,229)]">
-                <span className="text-2xl mr-1">+</span> New Game
-              </button>
+              <Link href="/create">
+                <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 border-2 border-indigo-400 flex items-center transition-colors duration-200 rounded-md shadow-[2px_2px_0px_0px_rgba(79,70,229)]">
+                  <span className="text-2xl mr-1">+</span> New Game
+                </button>
+              </Link>
             </div>
             
             {/* Projects Grid */}
@@ -525,18 +550,43 @@ function DashboardContent() {
                         <span>{typeof p.rating === 'number' ? p.rating.toFixed(1) : (p.rating || 'N/A')}</span>
                       </div>
                     </div>
-                    <div className="flex border-t border-gray-700">
+                    
+                    {/* BUTTON SECTION */}
+                    <div className="grid grid-cols-3 border-t border-gray-700">
                       <button 
                         onClick={() => openEditModal(p)}
-                        className="flex-1 p-2 bg-indigo-700 hover:bg-indigo-600 text-center transition-colors duration-200"
+                        className="p-2 bg-indigo-700 hover:bg-indigo-600 text-center transition-colors duration-200"
                       >
                         Edit
                       </button>
-                      <Link href={`/games/${p.id}`}>
-                        <button className="flex-1 p-2 bg-pink-600 hover:bg-pink-500 text-center transition-colors duration-200">Play</button>
+                      
+                      <Link href={`/games/${p.id}`} className="block">
+                        <button className="w-full p-2 bg-pink-600 hover:bg-pink-500 text-center transition-colors duration-200">
+                          Play
+                        </button>
                       </Link>
-                      <button className="flex-1 p-2 bg-indigo-600 hover:bg-indigo-500 text-center transition-colors duration-200">Share</button>
+                      
+                      <div className="relative">
+                        <button 
+                          className="w-full p-2 bg-indigo-600 hover:bg-indigo-500 text-center transition-colors duration-200"
+                          onClick={() => handleShare(p.id)}
+                        >
+                          Share
+                        </button>
+                      </div>
+                      {/* Notification popup - moved outside the relative container to avoid being clipped */}
+                      {showCopyNotification && (
+                        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-indigo-900 border-4 border-pink-500 text-white px-6 py-4 rounded-md shadow-[0px_0px_15px_5px_rgba(236,72,153,0.5)]">
+                          <div className="text-center">
+                            <p className="text-lg font-bold text-pink-400" style={{ fontFamily: '"Press Start 2P", cursive', fontSize: '14px' }}>
+                              LINK COPIED!
+                            </p>
+                            <p className="mt-2 text-sm text-indigo-200">Game link saved to clipboard</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
+                    {/* END OF BUTTON SECTION */}
                   </div>
                 ))
               ) : (
