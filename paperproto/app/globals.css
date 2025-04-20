@@ -1,4 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 @import "tailwindcss";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 
 :root {
   --background: #ffffff;
@@ -23,4 +30,103 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* app/globals.css */
+
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 22, 27, 34;
+  --background-end-rgb: 17, 24, 39;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+/* Custom retro gaming styles */
+.retro-text {
+  font-family: 'Press Start 2P', cursive;
+  text-shadow: 2px 2px 0px #4F46E5, 4px 4px 0px #2D3748;
+}
+
+.pixel-border {
+  box-shadow: 
+    4px 0 0 0 #6366F1,
+    0 4px 0 0 #6366F1,
+    2px 2px 0 0 #6366F1,
+    4px 4px 0 0 #6366F1;
+}
+
+.game-card {
+  transition: all 0.2s ease;
+}
+
+.game-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3), 0 4px 6px -2px rgba(79, 70, 229, 0.2);
+}
+
+/* Custom scrollbar for a retro feel */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1F2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4F46E5;
+  border: 2px solid #1F2937;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #EC4899;
+}
+
+/* Loading animation for retro feel */
+.pixel-spinner {
+  width: 64px;
+  height: 64px;
+  animation: pixel-spinner 1s steps(8) infinite;
+  background: conic-gradient(
+    #EC4899 0%,
+    #EC4899 12.5%,
+    #4F46E5 12.5%,
+    #4F46E5 25%,
+    #EC4899 25%,
+    #EC4899 37.5%,
+    #4F46E5 37.5%,
+    #4F46E5 50%,
+    #EC4899 50%,
+    #EC4899 62.5%,
+    #4F46E5 62.5%,
+    #4F46E5 75%,
+    #EC4899 75%,
+    #EC4899 87.5%,
+    #4F46E5 87.5%,
+    #4F46E5 100%
+  );
+  clip-path: polygon(
+    0% 0%, 25% 0%, 25% 25%, 50% 25%, 
+    50% 0%, 75% 0%, 75% 25%, 100% 25%, 
+    100% 50%, 75% 50%, 75% 75%, 100% 75%, 
+    100% 100%, 50% 100%, 50% 75%, 25% 75%, 
+    25% 100%, 0% 100%, 0% 75%, 
+    0% 50%, 25% 50%, 25% 25%, 0% 25%
+  );
+}
+
+@keyframes pixel-spinner {
+  to {
+    transform: rotate(360deg);
+  }
 }
