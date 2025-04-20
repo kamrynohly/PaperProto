@@ -155,7 +155,7 @@ export default function CommunityPage() {
         ) : filteredGames.length === 0 ? (
           <div className="bg-gray-800 rounded-lg p-8 text-center border-2 border-indigo-700">
             <p className="text-xl text-gray-400 mb-4">
-              No games found matching "{searchQuery}"
+              No games found matching {searchQuery}
             </p>
             <button
               onClick={clearSearch}
