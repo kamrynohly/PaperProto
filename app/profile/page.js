@@ -64,7 +64,6 @@ function DashboardContent() {
             gameCount: userData.gameCount || 0,
             favCount: userData.favCount || 0,
             avgRating: userData.avgRating || "--",
-            points: userData.points || 0,
             projects: []
           };
           
@@ -133,7 +132,6 @@ function DashboardContent() {
               gameCount: userDocData.gameCount || 0,
               favCount: userDocData.favCount || 0,
               avgRating: userDocData.avgRating || "--",
-              points: userDocData.points || 0,
               projects: []
             };
             
@@ -196,7 +194,6 @@ function DashboardContent() {
               avatar: currentUser.photoURL || null,
               email: currentUser.email,
               createdAt: serverTimestamp(),
-              points: 0
             };
             
             // Try to set the doc, but don't block rendering if it fails
@@ -214,7 +211,6 @@ function DashboardContent() {
               gameCount: initialUserData.gameCount || 0,
               favCount: initialUserData.favCount || 0,
               avgRating: initialUserData.avgRating || "--",
-              points: initialUserData.points || 0,
               projects: []
             };
             
@@ -231,7 +227,6 @@ function DashboardContent() {
           gameCount: 0,
           favCount: 0,
           avgRating: "--",
-          points: 0,
           projects: []
         });
         setLoading(false);
@@ -242,7 +237,6 @@ function DashboardContent() {
           username: "Error",
           avatar: null,
           projects: [],
-          points: 0
         });
         setLoading(false);
       }
@@ -259,7 +253,6 @@ function DashboardContent() {
           gameCount: 0,
           favCount: 0,
           avgRating: "--",
-          points: 0,
           projects: []
         });
       }
@@ -453,8 +446,8 @@ function DashboardContent() {
               </div>
               <div className="bg-gray-700 p-3 border-2 border-indigo-500 rounded-md">
                 <Heart size={20} className="mx-auto mb-1 text-red-500" />
-                <span className="text-xl font-bold">{dashboardData?.points || "0"}</span>
-                <p className="text-xs text-gray-400">POINTS</p>
+                <span className="text-xl font-bold">{dashboardData?.favCount || "0"}</span>
+                <p className="text-xs text-gray-400">LIKES</p>
               </div>
             </div>
             
