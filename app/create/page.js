@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import ChatInterface from '../../components/ChatInterface';
 import GameDisplay from '../../components/GameDisplay';
 import { Gamepad2, MessageSquare, AlertTriangle, Share2 } from 'lucide-react';
@@ -12,6 +13,7 @@ import { db } from '../../lib/firebase';
 import { v4 as uuidv4 } from 'uuid';
 
 export default function Home() {
+  const router = useRouter();
   const [gameCode, setGameCode] = useState(null);
   const [gameType, setGameType] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -66,14 +68,17 @@ export default function Home() {
       setError("Please generate a game and provide a title and description");
       return;
     }
+    
+    // Check if user is logged in
     if (!currentUser) {
-      setError("You must be logged in to publish a game");
+      // Redirect to auth page instead of just showing an error
+      router.push('/auth');
       return;
     }
-
+  
     const userId = currentUser.uid;
     const userName = userData?.username || currentUser.displayName || currentUser.email?.split('@')[0] || 'Anonymous User';
-
+  
     setPublishing(true);
     setError(null);
 
@@ -138,14 +143,20 @@ export default function Home() {
           </h1>
           {gameCode && (
             <button 
-              onClick={() => setShowPublishModal(true)}
-              className="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-md border-2 border-pink-400 shadow-[2px_2px_0px_0px_rgba(236,72,153)] transition-all hover:shadow-[1px_1px_0px_0px_rgba(236,72,153)] flex items-center"
-              style={{ fontFamily: '"Press Start 2P", cursive', fontSize: '10px' }}
+                onClick={() => {
+                if (!currentUser) {
+                    router.push('/auth');
+                } else {
+                    setShowPublishModal(true);
+                }
+                }}
+                className="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-md border-2 border-pink-400 shadow-[2px_2px_0px_0px_rgba(236,72,153)] transition-all hover:shadow-[1px_1px_0px_0px_rgba(236,72,153)] flex items-center"
+                style={{ fontFamily: '"Press Start 2P", cursive', fontSize: '10px' }}
             >
-              <Share2 size={16} className="mr-2" />
-              PUBLISH
+                <Share2 size={16} className="mr-2" />
+                PUBLISH
             </button>
-          )}
+            )}
         </div>
       </header>
 
