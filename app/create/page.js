@@ -130,7 +130,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 retro-grid-bg ">
+    <div className="min-h-screen bg-gray-900 retro-grid-bg">
       {/* Header with retro styling */}
       <header className="bg-indigo-900 border-b-4 border-pink-500 shadow-lg">
         <div className="container mx-auto py-4 px-4 flex justify-between items-center">
