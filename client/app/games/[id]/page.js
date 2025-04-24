@@ -6,10 +6,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc, arrayRemove, increment, arrayUnion, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
-import BottomNavigation from '../../../components/BottomNavigation';
-import GameDisplay from '../../../components/GameDisplay';
+import BottomNavigation from '../../../../components/BottomNavigation';
+import GameDisplay from '../../../../components/GameDisplay';
 import { useAuth } from '../../../contexts/AuthContext';
-import RetroLeaderboard from '../../../components/RetroLeaderboard';
+import RetroLeaderboard from '../../../../components/RetroLeaderboard';
 
 export default function GamePage({ params }) {
   const router = useRouter();

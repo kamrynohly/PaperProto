@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import BottomNavigation from '../../components/BottomNavigation';
+import BottomNavigation from '../../../components/BottomNavigation';
 import { collection, getDocs } from "firebase/firestore";
 import { db } from '../../lib/firebase';
 

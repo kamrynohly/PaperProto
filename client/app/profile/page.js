@@ -3,10 +3,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import ChatInterface from '../../components/ChatInterface';
-import GameDisplay from '../../components/GameDisplay';
+import ChatInterface from '../../../components/ChatInterface';
+import GameDisplay from '../../../components/GameDisplay';
 import { Gamepad2, MessageSquare, AlertTriangle, Share2 } from 'lucide-react';
-import BottomNavigation from '../../components/BottomNavigation';
+import BottomNavigation from '../../../components/BottomNavigation';
 import { useAuth } from '../../contexts/AuthContext';
 import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
