@@ -22,19 +22,39 @@ const BottomNavigation = () => {
       name: 'Community',
       href: '/community',
       iconSrc: '/arcade.png',
-      alt: 'Community Icon'
+      alt: 'Community Icon',
+      isImage: true
+    },
+    {
+      name: 'Multiplayer',
+      href: '/multiplayer',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 6H7a5 5 0 0 0-5 5v3a5 5 0 0 0 5 5h10a5 5 0 0 0 5-5v-3a5 5 0 0 0-5-5Z"></path>
+          <circle cx="12" cy="14" r="1"></circle>
+          <path d="M9 14h.01"></path>
+          <path d="M15 14h.01"></path>
+          <path d="M9 10h.01"></path>
+          <path d="M15 10h.01"></path>
+          <path d="m12 6-2-2h4l-2 2Z"></path>
+        </svg>
+      ),
+      alt: 'Multiplayer Icon',
+      isImage: false
     },
     {
       name: 'Create',
       href: '/create',
       iconSrc: '/console.png',
-      alt: 'Create Icon'
+      alt: 'Create Icon',
+      isImage: true
     },
     {
       name: 'Profile',
       href: '/profile',
       iconSrc: '/profile.png',
-      alt: 'Profile Icon'
+      alt: 'Profile Icon',
+      isImage: true
     },
   ];
 
@@ -57,14 +77,18 @@ const BottomNavigation = () => {
             }}
           >
             <div className={`p-1 ${isActive ? 'bg-gray-700 rounded-md border-2 border-indigo-500' : ''}`}>
-              <Image
-                src={tab.iconSrc}
-                alt={tab.alt}
-                width={32}
-                height={32}
-                className="object-contain"
-                priority
-              />
+              {tab.isImage ? (
+                <Image
+                  src={tab.iconSrc}
+                  alt={tab.alt}
+                  width={32}
+                  height={32}
+                  className="object-contain"
+                  priority
+                />
+              ) : (
+                tab.icon
+              )}
             </div>
           </Link>
         );

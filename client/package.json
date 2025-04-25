@@ -9,18 +9,27 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@grpc/grpc-js": "^1.13.3",
     "firebase": "^11.6.0",
     "lucide-react": "^0.501.0",
     "next": "^15.3.1",
+    "nice-grpc-web": "^3.3.7",
+    "protoc-gen-grpc-web": "^1.5.0",
+    "protoc-gen-js": "^3.21.4-4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "rxjs": "^7.8.2",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@grpc/proto-loader": "^0.7.15",
     "@tailwindcss/postcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
+    "google-protobuf": "^3.21.4",
+    "grpc-tools": "^1.13.0",
+    "grpc-web": "^1.5.0",
     "tailwindcss": "^4"
   }
 }
