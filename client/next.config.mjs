@@ -1,7 +1,6 @@
 const nextConfig = {
     reactStrictMode: true,
     devIndicators: {
-      buildActivity: false,
       buildActivityPosition: 'bottom-right',
     },
     images: {
