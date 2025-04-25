@@ -38,44 +38,6 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
     }
   }, [currentGameType, currentGameCode, onGameRequest]);
 
-  /**
-   * Compress an image file by resizing and lowering quality
-   * @param {File} file
-   * @returns {Promise<File>}
-   */
-  const compressImage = (file) => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      img.onload = () => {
-        // Adjust max dimensions as needed
-        const maxWidth = 1024;
-        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              reject(new Error('Compression failed: blob is null'));
-              return;
-            }
-            const compressedFile = new File([blob], file.name, {
-              type: 'image/jpeg',
-              lastModified: Date.now(),
-            });
-            resolve(compressedFile);
-          },
-          'image/jpeg',
-          0.7 // quality between 0 and 1
-        );
-      };
-      img.onerror = (err) => reject(err);
-    });
-  };
-
   // Handle file selection with compression
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);

@@ -30,7 +30,6 @@ export async function POST(request) {
     })));
     
     // Process user messages with images
-    // Process user messages with images
 for (let i = 0; i < messages.length; i++) {
     const msg = messages[i];
     
