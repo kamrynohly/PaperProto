@@ -334,7 +334,7 @@ export default function GamePage({ params }) {
                     </svg>
                     <span className="ml-1 font-bold">{game.rating ? game.rating.toFixed(1) : '0.0'}</span>
                   </div>
-                  <span className="text-gray-400">{formatPlays(game.plays)} plays</span>
+                  <span className="text-gray-400">{formatPlays(game.playCount)} plays</span>
                 </div>
                 
                 <div className="prose prose-invert max-w-none mb-8">
