@@ -79,6 +79,7 @@ function DashboardContent() {
   };
 
   // Improved real-time listener for user data and games
+  // Improved real-time listener for user data and games
   useEffect(() => {
     if (!currentUser) return;
   
@@ -109,19 +110,23 @@ function DashboardContent() {
         }
 
         const data = userSnap.data();
+        
+        // Create initial dashboard data with user info
         const dashboardUserData = {
           username: data.username || "Unknown",
           avatar: data.avatar,
           gameCount: data.project_ids?.length || 0,
-          favCount: data.favCount || 0,
+          favCount: 0,
           avgRating: "--",
           projects: [],
         };
   
+        // Set initial dashboard data with user information
+        setDashboardData(dashboardUserData);
+        
         // Now re-fetch the game docs too
         if (!data.project_ids || data.project_ids.length === 0) {
           // No projects, just update the dashboard data
-          setDashboardData(dashboardUserData);
           setLoading(false);
           return;
         }
@@ -149,11 +154,17 @@ function DashboardContent() {
                 // Calculate new average rating
                 const newAvgRating = calculateAverageRating(updatedProjects);
                 
+                // Calculate total likes across all games
+                const totalLikes = updatedProjects.reduce((total, project) => 
+                  total + (project.favCount || 0), 0
+                );
+                
                 return {
-                  ...prevData,
+                  ...prevData, // Keep username and avatar from previous state
                   projects: updatedProjects,
                   avgRating: newAvgRating,
-                  gameCount: updatedProjects.length
+                  gameCount: updatedProjects.length,
+                  favCount: totalLikes
                 };
               });
               
@@ -183,39 +194,99 @@ function DashboardContent() {
     };
   }, [currentUser, db]);
 
-  // Handle profile image as base64 directly in Firestore
+  const compressImage = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+          
+          // Calculate new dimensions while maintaining aspect ratio
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convert to base64 with reduced quality
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(compressedBase64);
+        };
+        
+        img.onerror = (error) => reject(error);
+      };
+      
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   const handleUploadProfileImage = async () => {
     if (!file || !currentUser) return;
     
     try {
       setUploading(true);
+      setNotificationMessage('Compressing image...');
+      setShowCopyNotification(true);
       
-      // Convert file to base64 string
-      const reader = new FileReader();
+      // Compress the image first
+      const compressedBase64 = await compressImage(file);
       
-      reader.onload = async (e) => {
-        const base64String = e.target.result;
+      try {
+        setNotificationMessage('Uploading image...');
         
-        // Update the user document in Firestore
+        // Update the user document in Firestore with compressed image
         await updateDoc(doc(db, "users", currentUser.uid), { 
-          avatar: base64String 
+          avatar: compressedBase64 
         });
         
-        setUploading(false);
-        setFile(null);
-      };
-      
-      reader.onerror = (error) => {
-        console.error("Error reading file:", error);
-        setUploading(false);
-      };
-      
-      // Read the file as data URL (base64)
-      reader.readAsDataURL(file);
-      
+        // Manually update the dashboardData state to show changes immediately
+        setDashboardData(prevData => ({
+          ...prevData,
+          avatar: compressedBase64
+        }));
+        
+        // Show success notification
+        setNotificationMessage('Profile image updated!');
+        setTimeout(() => {
+          setShowCopyNotification(false);
+        }, 2500);
+      } catch (error) {
+        console.error("Error updating profile:", error);
+        setNotificationMessage('Image too large!');
+        setTimeout(() => {
+          setShowCopyNotification(false);
+        }, 2500);
+      }
     } catch (error) {
       console.error("Error handling image:", error);
+      setNotificationMessage('Error processing image!');
+      setTimeout(() => {
+        setShowCopyNotification(false);
+      }, 2500);
+    } finally {
       setUploading(false);
+      setFile(null);
     }
   };
   
@@ -384,8 +455,12 @@ function DashboardContent() {
                   </div>
                 )}
               </div>
-              <label className="absolute bottom-0 right-0 p-2 bg-pink-600 hover:bg-pink-700 border-2 border-pink-400 cursor-pointer transition-colors duration-200">
-                <Edit size={16} />
+              <label className={`absolute bottom-0 right-0 p-2 ${uploading ? 'bg-gray-600' : 'bg-pink-600 hover:bg-pink-700'} border-2 border-pink-400 cursor-pointer transition-colors duration-200`}>
+                {uploading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Edit size={16} />
+                )}
                 <input
                   type="file"
                   className="hidden"
@@ -426,9 +501,9 @@ function DashboardContent() {
             
             {/* Action Buttons */}
             <div className="space-y-3">
-              <button className="w-full flex items-center justify-center p-3 bg-indigo-600 hover:bg-indigo-500 border-2 border-indigo-400 transition-colors duration-200 rounded-md shadow-[2px_2px_0px_0px_rgba(79,70,229)]">
+              {/* <button className="w-full flex items-center justify-center p-3 bg-indigo-600 hover:bg-indigo-500 border-2 border-indigo-400 transition-colors duration-200 rounded-md shadow-[2px_2px_0px_0px_rgba(79,70,229)]">
                 <Edit size={16} className="mr-2" /> Edit Profile
-              </button>
+              </button> */}
               <button onClick={handleLogout} className="w-full flex items-center justify-center p-3 bg-pink-600 hover:bg-pink-500 border-2 border-pink-400 transition-colors duration-200 rounded-md shadow-[2px_2px_0px_0px_rgba(236,72,153)]">
                 <LogOut size={16} className="mr-2" /> Logout
               </button>
