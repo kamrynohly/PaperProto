@@ -10,6 +10,8 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
+  arrayRemove,
   serverTimestamp
 } from 'firebase/firestore';
 import {
@@ -18,9 +20,28 @@ import {
   Trophy,
   Heart,
   Star,
-  Gamepad2
+  Gamepad2,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
+
+import { onSnapshot } from "firebase/firestore";
+
+// Added this function outside the component to avoid recreation on each render
+const calculateAverageRating = (projects) => {
+  const projectsWithRatings = projects.filter(project => 
+    project.rating && project.rating !== "?" && !isNaN(parseFloat(project.rating))
+  );
+  
+  if (projectsWithRatings.length === 0) return "--";
+  
+  const sum = projectsWithRatings.reduce((acc, project) => 
+    acc + parseFloat(project.rating), 0
+  );
+  
+  return (sum / projectsWithRatings.length).toFixed(1);
+};
 
 function DashboardContent() {
   const router = useRouter();
@@ -39,8 +60,13 @@ function DashboardContent() {
   const [editPreview, setEditPreview] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  // --- DELETE MODAL STATE ---
+  const [deleteProject, setDeleteProject] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
   // SHARE
   const [showCopyNotification, setShowCopyNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
 
   // Handle logout function
   const handleLogout = async () => {
@@ -52,219 +78,110 @@ function DashboardContent() {
     }
   };
 
-  // Fetch user data from Firestore
+  // Improved real-time listener for user data and games
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        if (authLoading) return;
-        
-        // If user data already exists in context, use it as a base
-        if (userData) {
-          // Transform userData to match expected dashboard structure
-          const dashboardUserData = {
-            username: userData.username || "Unknown",
-            avatar: userData.avatar || null,
-            gameCount: userData.gameCount || 0,
-            favCount: userData.favCount || 0,
-            avgRating: userData.avgRating || "--",
+    if (!currentUser) return;
+  
+    // Listen for ANY change to the user doc with onSnapshot (real-time)
+    const userUnsubscribe = onSnapshot(
+      doc(db, "users", currentUser.uid),
+      userSnap => {
+        if (!userSnap.exists()) {
+          // If user document doesn't exist, create initial user data
+          setDoc(doc(db, "users", currentUser.uid), {
+            username: currentUser.displayName || "Unknown",
+            project_ids: [],
+            avatar: currentUser.photoURL || null,
+            email: currentUser.email,
+            createdAt: serverTimestamp(),
+          }).catch(e => console.warn("Couldn't save initial user data:", e));
+          
+          setDashboardData({
+            username: currentUser.displayName || "Unknown",
+            avatar: currentUser.photoURL || null,
+            gameCount: 0,
+            favCount: 0,
+            avgRating: "--",
             projects: []
-          };
-          
-          // Fetch projects if project_ids exists
-          if (userData.project_ids && userData.project_ids.length > 0) {
-            try {
-              const projectsData = [];
-              
-              // For each project ID, fetch project details
-              for (const projectId of userData.project_ids) {
-                const projectDoc = await getDoc(doc(db, "games", projectId));
-                if (projectDoc.exists()) {
-                  projectsData.push({
-                    id: projectId,
-                    title: projectDoc.data().title || "Untitled Project",
-                    description: projectDoc.data().description || "",
-                    playCount: projectDoc.data().playCount || 0,
-                    favCount: projectDoc.data().favCount || 0,
-                    rating: projectDoc.data().rating || "N/A",
-                    image: projectDoc.data().image || null
-                  });
-                }
-              }
-              
-              // Calculate average rating across all projects
-              const calculateAverageRating = (projects) => {
-                const projectsWithRatings = projects.filter(project => 
-                  project.rating && project.rating !== "N/A" && !isNaN(parseFloat(project.rating))
-                );
-                
-                if (projectsWithRatings.length === 0) return "--";
-                
-                const sum = projectsWithRatings.reduce((acc, project) => 
-                  acc + parseFloat(project.rating), 0
-                );
-                
-                return (sum / projectsWithRatings.length).toFixed(1);
-              };
-              
-              // Set average rating
-              dashboardUserData.avgRating = calculateAverageRating(projectsData);
-              
-              dashboardUserData.projects = projectsData;
-            } catch (error) {
-              console.error("Error fetching projects:", error);
-            }
-          }
-          
+          });
+          setLoading(false);
+          return;
+        }
+
+        const data = userSnap.data();
+        const dashboardUserData = {
+          username: data.username || "Unknown",
+          avatar: data.avatar,
+          gameCount: data.project_ids?.length || 0,
+          favCount: data.favCount || 0,
+          avgRating: "--",
+          projects: [],
+        };
+  
+        // Now re-fetch the game docs too
+        if (!data.project_ids || data.project_ids.length === 0) {
+          // No projects, just update the dashboard data
           setDashboardData(dashboardUserData);
           setLoading(false);
           return;
         }
-        
-        // If userData doesn't exist but user is authenticated, try to fetch data
-        if (currentUser) {
-          const userDocRef = doc(db, "users", currentUser.uid);
-          const userDoc = await getDoc(userDocRef);
-          
-          if (userDoc.exists()) {
-            const userDocData = userDoc.data();
-            
-            // Create user dashboard data
-            const dashboardUserData = {
-              username: userDocData.username || currentUser.displayName || "Unknown",
-              avatar: userDocData.avatar || null,
-              gameCount: userDocData.gameCount || 0,
-              favCount: userDocData.favCount || 0,
-              avgRating: userDocData.avgRating || "--",
-              projects: []
-            };
-            
-            // Fetch projects if project_ids exists
-            if (userDocData.project_ids && userDocData.project_ids.length > 0) {
-              try {
-                const projectsData = [];
+
+        // Set up listeners for all games
+        const gameListeners = data.project_ids.map(gameId => {
+          return onSnapshot(
+            doc(db, "games", gameId),
+            gameSnap => {
+              if (!gameSnap.exists()) return;
+              
+              setDashboardData(prevData => {
+                // First, filter out any previous version of this game
+                const filteredProjects = prevData?.projects?.filter(p => p.id !== gameId) || [];
                 
-                // For each project ID, fetch project details
-                for (const projectId of userDocData.project_ids) {
-                  const projectDoc = await getDoc(doc(db, "games", projectId));
-                  if (projectDoc.exists()) {
-                    projectsData.push({
-                      id: projectId,
-                      title: projectDoc.data().title || "Untitled Project",
-                      description: projectDoc.data().description || "",
-                      playCount: projectDoc.data().playCount || 0,
-                      favCount: projectDoc.data().favCount || 0,
-                      rating: projectDoc.data().rating || "N/A",
-                      image: projectDoc.data().image || null
-                    });
+                // Add the updated game
+                const updatedProjects = [
+                  ...filteredProjects,
+                  {
+                    id: gameId,
+                    ...(gameSnap.data())
                   }
-                }
+                ];
                 
-                // Calculate average rating across all projects
-                const calculateAverageRating = (projects) => {
-                  const projectsWithRatings = projects.filter(project => 
-                    project.rating && project.rating !== "N/A" && !isNaN(parseFloat(project.rating))
-                  );
-                  
-                  if (projectsWithRatings.length === 0) return "--";
-                  
-                  const sum = projectsWithRatings.reduce((acc, project) => 
-                    acc + parseFloat(project.rating), 0
-                  );
-                  
-                  return (sum / projectsWithRatings.length).toFixed(1);
+                // Calculate new average rating
+                const newAvgRating = calculateAverageRating(updatedProjects);
+                
+                return {
+                  ...prevData,
+                  projects: updatedProjects,
+                  avgRating: newAvgRating,
+                  gameCount: updatedProjects.length
                 };
-                
-                // Set average rating
-                dashboardUserData.avgRating = calculateAverageRating(projectsData);
-                
-                dashboardUserData.projects = projectsData;
-              } catch (error) {
-                console.error("Error fetching projects:", error);
-              }
+              });
+              
+              setLoading(false);
+            },
+            error => {
+              console.error(`Error listening to game ${gameId}:`, error);
+              setLoading(false);
             }
-            
-            setDashboardData(dashboardUserData);
-            setLoading(false);
-            
-            // Also refresh user data in the context
-            refreshUserData();
-            return;
-          } else {
-            // If user document doesn't exist, create initial user data
-            const initialUserData = {
-              username: currentUser.displayName || "Unknown",
-              project_ids: [],
-              avatar: currentUser.photoURL || null,
-              email: currentUser.email,
-              createdAt: serverTimestamp(),
-            };
-            
-            // Try to set the doc, but don't block rendering if it fails
-            try {
-              await setDoc(userDocRef, initialUserData);
-              // Also refresh user data in the context
-              refreshUserData();
-            } catch (e) {
-              console.warn("Couldn't save initial user data:", e);
-            }
-            
-            const dashboardUserData = {
-              username: initialUserData.username,
-              avatar: initialUserData.avatar,
-              gameCount: initialUserData.gameCount || 0,
-              favCount: initialUserData.favCount || 0,
-              avgRating: initialUserData.avgRating || "--",
-              projects: []
-            };
-            
-            setDashboardData(dashboardUserData);
-            setLoading(false);
-            return;
-          }
-        }
+          );
+        });
         
-        // Fallback to sample data if not authenticated or errors occur
-        setDashboardData({
-          username: "Unknown",
-          avatar: null,
-          gameCount: 0,
-          favCount: 0,
-          avgRating: "--",
-          projects: []
-        });
-        setLoading(false);
-      } catch (error) {
-        console.error("Error in user data setup:", error);
-        // Ultimate fallback if everything fails
-        setDashboardData({
-          username: "Error",
-          avatar: null,
-          projects: [],
-        });
+        // Return cleanup function
+        return () => {
+          gameListeners.forEach(unsubscribe => unsubscribe());
+        };
+      },
+      error => {
+        console.error("Error listening to user data:", error);
         setLoading(false);
       }
+    );
+  
+    // Return cleanup function for user listener
+    return () => {
+      userUnsubscribe();
     };
-    
-    // Set a timeout to ensure we don't get stuck in loading
-    const timeoutId = setTimeout(() => {
-      if (loading) {
-        console.warn("Loading timeout reached, using fallback data");
-        setLoading(false);
-        setDashboardData({
-          username: "Unknown",
-          avatar: null,
-          gameCount: 0,
-          favCount: 0,
-          avgRating: "--",
-          projects: []
-        });
-      }
-    }, 3000); // 3 second timeout
-    
-    fetchUserData();
-    
-    return () => clearTimeout(timeoutId);
-  }, [currentUser, userData, authLoading, db, refreshUserData, loading]);
+  }, [currentUser, db]);
 
   // Handle profile image as base64 directly in Firestore
   const handleUploadProfileImage = async () => {
@@ -279,19 +196,10 @@ function DashboardContent() {
       reader.onload = async (e) => {
         const base64String = e.target.result;
         
-        // Update dashboard data in state
-        setDashboardData(prev => ({
-          ...prev,
-          avatar: base64String
-        }));
-        
         // Update the user document in Firestore
         await updateDoc(doc(db, "users", currentUser.uid), { 
           avatar: base64String 
         });
-        
-        // Refresh user data in context
-        refreshUserData();
         
         setUploading(false);
         setFile(null);
@@ -344,31 +252,71 @@ function DashboardContent() {
 
     try {
       const ref = doc(db, 'games', editingProject);
-      const imageToStore = editFile ? editPreview : editPreview; // preview already base64
+      const imageToStore = editPreview; // preview already base64
       await updateDoc(ref, {
         title: editTitle,
         description: editDesc,
         image: imageToStore
       });
 
-      // update local
-      setDashboardData(d => ({
-        ...d,
-        projects: d.projects.map(p =>
-          p.id === editingProject
-            ? { ...p, title: editTitle, description: editDesc, image: imageToStore }
-            : p
-        )
-      }));
-
+      // State will be updated by the real-time listener
       setEditingProject(null);
+      
+      // Show success notification
+      setNotificationMessage('Game updated successfully!');
+      setShowCopyNotification(true);
+      setTimeout(() => setShowCopyNotification(false), 2500);
     } catch (err) {
       console.error(err);
+      // Show error notification
+      setNotificationMessage('Error updating game!');
+      setShowCopyNotification(true);
+      setTimeout(() => setShowCopyNotification(false), 2500);
     } finally {
       setSaving(false);
     }
   };
 
+  // --------------------------------------------------
+  //  DELETE HANDLERS - NEW CODE
+  // --------------------------------------------------
+  const openDeleteModal = project => {
+    setDeleteProject(project);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteProject || !currentUser) return;
+    setDeleting(true);
+
+    try {
+      // Delete the game document from Firestore
+      await deleteDoc(doc(db, 'games', deleteProject.id));
+      
+      // Update the user document to remove the game from project_ids array
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        project_ids: arrayRemove(deleteProject.id)
+      });
+
+      // State will be updated by the real-time listener
+      setDeleteProject(null);
+      
+      // Show success notification
+      setNotificationMessage('Game deleted successfully!');
+      setShowCopyNotification(true);
+      setTimeout(() => setShowCopyNotification(false), 1000);
+    } catch (err) {
+      console.error("Error deleting game:", err);
+      
+      // Show error notification
+      setNotificationMessage('Error deleting game!');
+      setShowCopyNotification(true);
+      setTimeout(() => setShowCopyNotification(false), 1000);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Share handler
   const handleShare = (gameId) => {
     // Create the game URL
     const gameUrl = `https://paper-proto-one.vercel.app/games/${gameId}`;
@@ -377,12 +325,13 @@ function DashboardContent() {
     navigator.clipboard.writeText(gameUrl)
       .then(() => {
         // Show notification
+        setNotificationMessage('Link copied to clipboard!');
         setShowCopyNotification(true);
         
         // Hide notification after 2.5 seconds
         setTimeout(() => {
           setShowCopyNotification(false);
-        }, 2500);
+        }, 1000);
       })
       .catch(err => {
         console.error('Failed to copy: ', err);
@@ -442,6 +391,7 @@ function DashboardContent() {
                   className="hidden"
                   accept="image/*"
                   onChange={(e) => setFile(e.target.files[0])}
+                  disabled={uploading}
                 />
               </label>
             </div>
@@ -547,7 +497,7 @@ function DashboardContent() {
                       </div>
                       <div className="flex items-center">
                         <Star size={16} className="mr-1 text-yellow-400" />
-                        <span>{typeof p.rating === 'number' ? p.rating.toFixed(1) : (p.rating || 'N/A')}</span>
+                        <span>{typeof p.rating === 'number' ? p.rating.toFixed(1) : (p.rating || '?')}</span>
                       </div>
                     </div>
                     
@@ -566,25 +516,12 @@ function DashboardContent() {
                         </button>
                       </Link>
                       
-                      <div className="relative">
-                        <button 
-                          className="w-full p-2 bg-indigo-600 hover:bg-indigo-500 text-center transition-colors duration-200"
-                          onClick={() => handleShare(p.id)}
-                        >
-                          Share
-                        </button>
-                      </div>
-                      {/* Notification popup - moved outside the relative container to avoid being clipped */}
-                      {showCopyNotification && (
-                        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-indigo-900 border-4 border-pink-500 text-white px-6 py-4 rounded-md shadow-[0px_0px_15px_5px_rgba(236,72,153,0.5)]">
-                          <div className="text-center">
-                            <p className="text-lg font-bold text-pink-400" style={{ fontFamily: '"Press Start 2P", cursive', fontSize: '14px' }}>
-                              LINK COPIED!
-                            </p>
-                            <p className="mt-2 text-sm text-indigo-200">Game link saved to clipboard</p>
-                          </div>
-                        </div>
-                      )}
+                      <button 
+                        className="w-full p-2 bg-indigo-600 hover:bg-indigo-500 text-center transition-colors duration-200"
+                        onClick={() => handleShare(p.id)}
+                      >
+                        Share
+                      </button>
                     </div>
                     {/* END OF BUTTON SECTION */}
                   </div>
@@ -602,6 +539,11 @@ function DashboardContent() {
                   <p className="text-gray-400 mb-6">
                     You have not created any games yet. Click the button below to get started!
                   </p>
+                  <Link href="/create">
+                    <button className="px-6 py-3 bg-pink-600 hover:bg-pink-500 border-2 border-pink-400 rounded-md shadow-lg transition-colors duration-200">
+                      Create Your First Game
+                    </button>
+                  </Link>
                 </div>
               )}
             </div>
@@ -610,6 +552,17 @@ function DashboardContent() {
       </main>
 
       <BottomNavigation/>
+
+      {/** NOTIFICATION POPUP **/}
+      {showCopyNotification && (
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-indigo-900 border-4 border-pink-500 text-white px-6 py-4 rounded-md shadow-[0px_0px_15px_5px_rgba(236,72,153,0.5)]">
+          <div className="text-center">
+            <p className="text-lg font-bold text-pink-400" style={{ fontFamily: '"Press Start 2P", cursive', fontSize: '14px' }}>
+              {notificationMessage || 'LINK COPIED!'}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/** EDIT MODAL **/}
       {editingProject && (
@@ -638,17 +591,67 @@ function DashboardContent() {
               className="w-full bg-gray-700 px-3 py-2 rounded text-white text-sm h-20 resize-none"
             />
 
-            <div className="flex justify-end space-x-2">
+            <div className="flex justify-between mt-6">
+              {/* Delete button in edit modal */}
               <button
-                onClick={() => setEditingProject(null)}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white text-sm"
-              >Cancel</button>
-              <button
-                onClick={saveProjectEdits}
-                disabled={saving}
-                className="px-4 py-2 bg-pink-600 hover:bg-pink-500 rounded text-white text-sm disabled:opacity-50"
+                onClick={() => {
+                  setEditingProject(null);
+                  // Get the project data to pass to delete modal
+                  const projectToDelete = dashboardData.projects.find(p => p.id === editingProject);
+                  if (projectToDelete) {
+                    openDeleteModal(projectToDelete);
+                  }
+                }}
+                className="px-4 py-2 bg-red-700 hover:bg-red-600 rounded text-white text-sm flex items-center"
               >
-                {saving ? 'Saving…' : 'Save'}
+                <Trash2 size={16} className="mr-2" /> Delete Game
+              </button>
+              
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setEditingProject(null)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white text-sm"
+                >Cancel</button>
+                <button
+                  onClick={saveProjectEdits}
+                  disabled={saving}
+                  className="px-4 py-2 bg-pink-600 hover:bg-pink-500 rounded text-white text-sm disabled:opacity-50"
+                >
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/** DELETE CONFIRMATION MODAL - NEW **/}
+      {deleteProject && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md space-y-4 border-2 border-red-500">
+            <div className="flex items-center space-x-3">
+              <AlertTriangle size={24} className="text-red-500" />
+              <h3 className="text-xl font-bold text-red-400">Delete Game</h3>
+            </div>
+
+            <p className="text-gray-300">
+              Are you sure you want to delete <span className="font-bold text-pink-400">{deleteProject.title || "this game"}</span>? This action cannot be undone.
+            </p>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <button
+                onClick={() => setDeleteProject(null)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded text-white text-sm disabled:opacity-50 flex items-center"
+              >
+                {deleting ? 'Deleting...' : 'Delete Game'}
+                {!deleting && <Trash2 size={16} className="ml-2" />}
               </button>
             </div>
           </div>
