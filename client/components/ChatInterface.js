@@ -9,7 +9,7 @@ import NextImage from 'next/image';
 const initialMessages = [
   {
     role: 'assistant',
-    content: "Hi there! I'm Claude, your game development assistant. What kind of game would you like me to build for you today?"
+    content: "What kind of game would you like me to build for you today?"
   }
 ];
 
