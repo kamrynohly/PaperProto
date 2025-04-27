@@ -173,7 +173,7 @@ export default function LaunchGameRoomComponent() {
   };
 
   return (
-    <div className="p-4 max-w-md mx-auto bg-white rounded-lg shadow-md">
+    <div className="p-4 max-w-md mx-auto bg-white text-black rounded-lg shadow-md">
       <h2 className="text-xl font-bold mb-4">Launch Game Room</h2>
       
       <form onSubmit={handleSubmit} className="space-y-4">
