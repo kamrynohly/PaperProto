@@ -1,4 +1,4 @@
-// source: service.proto
+// source: proto/service.proto
 /**
  * @fileoverview
  * @enhanceable
@@ -13,13 +13,13 @@
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global = (function() {
-  if (this) { return this; }
-  if (typeof window !== 'undefined') { return window; }
-  if (typeof global !== 'undefined') { return global; }
-  if (typeof self !== 'undefined') { return self; }
-  return Function('return this')();
-}.call(null));
+var global =
+    (typeof globalThis !== 'undefined' && globalThis) ||
+    (typeof window !== 'undefined' && window) ||
+    (typeof global !== 'undefined' && global) ||
+    (typeof self !== 'undefined' && self) ||
+    (function () { return this; }).call(null) ||
+    Function('return this')();
 
 goog.exportSymbol('proto.paperproto_server.GameEndRequest', null, global);
 goog.exportSymbol('proto.paperproto_server.GameEndResponse', null, global);
@@ -365,9 +365,9 @@ proto.paperproto_server.LaunchGameRoomRequest.prototype.toObject = function(opt_
  */
 proto.paperproto_server.LaunchGameRoomRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    gamesessionid: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    hostid: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    hostusername: jspb.Message.getFieldWithDefault(msg, 3, "")
+gamesessionid: jspb.Message.getFieldWithDefault(msg, 1, ""),
+hostid: jspb.Message.getFieldWithDefault(msg, 2, ""),
+hostusername: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -555,8 +555,8 @@ proto.paperproto_server.LaunchGameRoomResponse.prototype.toObject = function(opt
  */
 proto.paperproto_server.LaunchGameRoomResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-    status: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    message: jspb.Message.getFieldWithDefault(msg, 2, "")
+status: jspb.Message.getFieldWithDefault(msg, 1, 0),
+message: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -723,9 +723,9 @@ proto.paperproto_server.JoinGameRoomRequest.prototype.toObject = function(opt_in
  */
 proto.paperproto_server.JoinGameRoomRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    gamesessionid: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    userid: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    username: jspb.Message.getFieldWithDefault(msg, 3, "")
+gamesessionid: jspb.Message.getFieldWithDefault(msg, 1, ""),
+userid: jspb.Message.getFieldWithDefault(msg, 2, ""),
+username: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -913,8 +913,8 @@ proto.paperproto_server.JoinGameRoomResponse.prototype.toObject = function(opt_i
  */
 proto.paperproto_server.JoinGameRoomResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-    status: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    message: jspb.Message.getFieldWithDefault(msg, 2, "")
+status: jspb.Message.getFieldWithDefault(msg, 1, 0),
+message: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -1081,8 +1081,8 @@ proto.paperproto_server.GetPlayersRequest.prototype.toObject = function(opt_incl
  */
 proto.paperproto_server.GetPlayersRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    gamesessionid: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    userid: jspb.Message.getFieldWithDefault(msg, 2, "")
+gamesessionid: jspb.Message.getFieldWithDefault(msg, 1, ""),
+userid: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -1241,8 +1241,8 @@ proto.paperproto_server.GetPlayersResponse.prototype.toObject = function(opt_inc
  */
 proto.paperproto_server.GetPlayersResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-    username: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    userid: jspb.Message.getFieldWithDefault(msg, 2, "")
+username: jspb.Message.getFieldWithDefault(msg, 1, ""),
+userid: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -1401,8 +1401,8 @@ proto.paperproto_server.SubscribeToGameUpdatesRequest.prototype.toObject = funct
  */
 proto.paperproto_server.SubscribeToGameUpdatesRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    gamesessionid: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    userid: jspb.Message.getFieldWithDefault(msg, 2, "")
+gamesessionid: jspb.Message.getFieldWithDefault(msg, 1, ""),
+userid: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -1561,8 +1561,8 @@ proto.paperproto_server.SubscribeToGameUpdatesResponse.prototype.toObject = func
  */
 proto.paperproto_server.SubscribeToGameUpdatesResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-    fromplayerid: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    gamestate: jspb.Message.getFieldWithDefault(msg, 2, "")
+fromplayerid: jspb.Message.getFieldWithDefault(msg, 1, ""),
+gamestate: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -1721,8 +1721,8 @@ proto.paperproto_server.SendGameUpdateRequest.prototype.toObject = function(opt_
  */
 proto.paperproto_server.SendGameUpdateRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    fromplayerid: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    gamestate: jspb.Message.getFieldWithDefault(msg, 2, "")
+fromplayerid: jspb.Message.getFieldWithDefault(msg, 1, ""),
+gamestate: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -1881,8 +1881,8 @@ proto.paperproto_server.SendGameUpdateResponse.prototype.toObject = function(opt
  */
 proto.paperproto_server.SendGameUpdateResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-    status: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    message: jspb.Message.getFieldWithDefault(msg, 2, "")
+status: jspb.Message.getFieldWithDefault(msg, 1, 0),
+message: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -2049,8 +2049,8 @@ proto.paperproto_server.GameEndRequest.prototype.toObject = function(opt_include
  */
 proto.paperproto_server.GameEndRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    gamesessionid: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    endstate: jspb.Message.getFieldWithDefault(msg, 2, "")
+gamesessionid: jspb.Message.getFieldWithDefault(msg, 1, ""),
+endstate: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -2209,8 +2209,8 @@ proto.paperproto_server.GameEndResponse.prototype.toObject = function(opt_includ
  */
 proto.paperproto_server.GameEndResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-    status: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    message: jspb.Message.getFieldWithDefault(msg, 2, "")
+status: jspb.Message.getFieldWithDefault(msg, 1, 0),
+message: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -2377,8 +2377,8 @@ proto.paperproto_server.HeartbeatRequest.prototype.toObject = function(opt_inclu
  */
 proto.paperproto_server.HeartbeatRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
-    requestorId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    serverId: jspb.Message.getFieldWithDefault(msg, 2, "")
+requestorId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+serverId: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -2537,8 +2537,8 @@ proto.paperproto_server.HeartbeatResponse.prototype.toObject = function(opt_incl
  */
 proto.paperproto_server.HeartbeatResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-    responderId: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    status: jspb.Message.getFieldWithDefault(msg, 2, "")
+responderId: jspb.Message.getFieldWithDefault(msg, 1, ""),
+status: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {

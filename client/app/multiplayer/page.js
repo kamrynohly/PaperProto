@@ -1,12 +1,34 @@
 // 'use client';
 
 // import { useState } from 'react';
-// import Link from 'next/link';
+// import { useRouter } from 'next/navigation';
 // import BottomNavigation from '../../components/BottomNavigation';
+
+// // Configure the gRPC server URL
+// const GRPC_SERVER_URL = process.env.NEXT_PUBLIC_GRPC_SERVER_URL || 'http://127.0.0.1:5001';
+
+// // Create the client directly
+// const client = new PaperProtoServerClient(GRPC_SERVER_URL);
+
+// // Helper functions (reuse from your grpcClient.js)
+// function generateSessionID() {
+//   return `game_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+// }
+
+// function generateUserID() {
+//   return `user_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+// }
+
+// // Helper to check success response
+// function isSuccessResponse(response) {
+//   return response && response.getStatus() === 0; // 0 = SUCCESS in the proto enum
+// }
 
 // export default function MultiplayerPage() {
 //   const [sessionCode, setSessionCode] = useState('');
 //   const [error, setError] = useState('');
+//   const [isLoading, setIsLoading] = useState(false);
+//   const router = useRouter();
   
 //   const handleJoinGame = (e) => {
 //     e.preventDefault();
@@ -15,10 +37,49 @@
 //       return;
 //     }
     
-//     // Here you would typically validate the code and redirect
-//     // For now, let's just simulate a redirect
-//     window.location.href = `/gameroom/${sessionCode}`;
+//     router.push(`/gameroom/${sessionCode}`);
 //   };
+  
+//   // Update your handleCreateGame function to properly create and navigate to a game room
+// const handleCreateGame = async () => {
+//   try {
+//     setIsLoading(true);
+//     setError('');
+    
+//     // Generate unique IDs
+//     const gameSessionID = generateSessionID();
+//     const hostID = generateUserID();
+//     const hostUsername = "Host"; // Or get from input
+    
+//     // Create the request object
+//     const request = new service_pb.LaunchGameRoomRequest();
+    
+//     // Set the required fields (using the correct method names based on your proto definition)
+//     request.setGamesessionid(gameSessionID);
+//     request.setHostid(hostID);
+//     request.setHostusername(hostUsername);
+    
+//     console.log('Sending request:', request.toObject());
+    
+//     // Call the gRPC method
+//     const response = await client.launchGameRoom(request);
+//     console.log('Response received:', response.toObject());
+    
+//     // Store user data for the game session
+//     localStorage.setItem('userID', hostID);
+//     localStorage.setItem('username', hostUsername);
+//     localStorage.setItem('gameSessionID', gameSessionID);
+    
+//     // Navigate to the game room
+//     router.push(`/gameroom/${gameSessionID}`);
+    
+//   } catch (err) {
+//     console.error('Error creating game room:', err);
+//     setError(`Failed to create game: ${err.message}`);
+//   } finally {
+//     setIsLoading(false);
+//   }
+// };
   
 //   return (
 //     <div className="min-h-screen bg-gray-900 text-white pt-6 pb-20 px-4">
@@ -66,12 +127,14 @@
 //           <p className="text-gray-300 mb-4">
 //             Start a new multiplayer game session and invite friends to join.
 //           </p>
-//           <Link 
-//             href="/create-game"
-//             className="block w-full bg-pink-600 hover:bg-pink-700 text-white font-medium py-2 px-4 rounded-md text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-50"
+//           <button 
+//             onClick={handleCreateGame}
+//             disabled={isLoading}
+//             className="block w-full bg-pink-600 hover:bg-pink-700 text-white font-medium py-2 px-4 rounded-md text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-50 disabled:bg-pink-800 disabled:cursor-not-allowed"
 //           >
-//             Create Game
-//           </Link>
+//             {isLoading ? 'Creating...' : 'Create Game'}
+//           </button>
+//           {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
 //         </div>
 //       </div>
 //       <BottomNavigation/>
@@ -79,176 +142,97 @@
 //   );
 // }
 
-
+// app/components/LaunchGameRoom.js
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import BottomNavigation from '../../components/BottomNavigation';
-import paperProtoClient from '../../lib/paperProtoClient';
+import { useState } from 'react';
+import { launchGameRoom } from '../../utils/grpcClient';
 
-export default function CreateGamePage() {
-  const [username, setUsername] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState('');
-  const [connectionStatus, setConnectionStatus] = useState('checking');
-  const router = useRouter();
-  
-  // Check server connection on component mount
-  useEffect(() => {
-    const checkServerConnection = async () => {
-      // try {
-      //   // Generate a temporary ID for the heartbeat request
-      //   const tempID = 'check_' + Math.random().toString(36).substring(2, 7);
-      //   // const response = await paperProtoClient.heartbeat(tempID);
-        
-      //   if (paperProtoClient.isSuccessResponse(response)) {
-          setConnectionStatus('connected');
-      //   } else {
-      //     setConnectionStatus('error');
-      //     setError('Server responded but with an error status');
-      //   }
-      // } catch (err) {
-      //   console.error('Server connection check failed:', err);
-      //   setConnectionStatus('disconnected');
-      //   setError('Could not connect to the game server. Please try again later.');
-      // }
-    };
-    
-    checkServerConnection();
-  }, []);
-  
-  const handleCreateGame = async (e) => {
+export default function LaunchGameRoomComponent() {
+  const [gameSessionID, setGameSessionID] = useState('');
+  const [hostID, setHostID] = useState('');
+  const [hostUsername, setHostUsername] = useState('');
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!username.trim()) {
-      setError('Please enter a display name');
-      return;
-    }
-    
-    if (connectionStatus !== 'connected') {
-      setError('Cannot create a game: server connection issue');
-      return;
-    }
-    
-    setIsCreating(true);
-    setError('');
+    setLoading(true);
+    setError(null);
     
     try {
-      // Generate session and user IDs
-      const gameSessionID = paperProtoClient.generateSessionID();
-      const hostID = paperProtoClient.generateUserID();
-      
-      // Launch the game room
-      const response = await paperProtoClient.launchGameRoom(
-        gameSessionID,
-        hostID,
-        username.trim()
-      );
-      
-      if (paperProtoClient.isSuccessResponse(response)) {
-        // Store user info in localStorage for persistence across pages
-        localStorage.setItem('paperProto_userID', hostID);
-        localStorage.setItem('paperProto_username', username.trim());
-        localStorage.setItem('paperProto_isHost', 'true');
-        localStorage.setItem('paperProto_gameSessionID', gameSessionID);
-        
-        // Navigate to the game room page
-        router.push(`/gameroom/${gameSessionID}`);
-      } else {
-        setError('Failed to create game room: ' + (response.errorMessage || 'Unknown error'));
-      }
+      const response = await launchGameRoom(gameSessionID, hostID, hostUsername);
+      setResult(response);
     } catch (err) {
-      console.error('Error creating game room:', err);
-      setError('Failed to create game room: ' + err.message);
+      console.error('Error launching game room:', err);
+      setError(err.message || 'Failed to launch game room');
     } finally {
-      setIsCreating(false);
+      setLoading(false);
     }
   };
-  
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white pt-6 pb-20 px-4">
-      <div className="max-w-md mx-auto">
-        <h1 className="text-3xl font-bold text-center text-pink-500 mb-8" 
-            style={{ textShadow: '0px 0px 8px rgba(236, 72, 153, 0.6)' }}>
-          Create Game Room
-        </h1>
-        
-        <div className="bg-gray-800 rounded-lg border-2 border-indigo-500 p-6 mb-4 shadow-lg"
-             style={{ boxShadow: '0 0 15px rgba(99, 102, 241, 0.4)' }}>
-          
-          {connectionStatus === 'checking' && (
-            <div className="mb-4 text-center text-yellow-300">
-              <p>Connecting to game server...</p>
-              <div className="mt-2 w-full bg-gray-700 rounded-full h-2.5">
-                <div className="bg-yellow-300 h-2.5 rounded-full w-3/4 animate-pulse"></div>
-              </div>
-            </div>
-          )}
-          
-          {connectionStatus === 'disconnected' && (
-            <div className="mb-4 text-center text-red-400">
-              <p>Cannot connect to game server</p>
-              <p className="text-sm mt-1">Please try again later</p>
-            </div>
-          )}
-          
-          {connectionStatus === 'connected' && (
-            <div className="mb-4 text-center text-green-400">
-              <p>Connected to game server</p>
-              <div className="mt-2 w-full bg-gray-700 rounded-full h-2.5">
-                <div className="bg-green-400 h-2.5 rounded-full w-full"></div>
-              </div>
-            </div>
-          )}
-          
-          <h2 className="text-xl font-semibold mb-4 text-indigo-400">Host a New Game</h2>
-          
-          <form onSubmit={handleCreateGame}>
-            <div className="mb-4">
-              <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-1">
-                Display Name
-              </label>
-              <input
-                type="text"
-                id="username"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  setError('');
-                }}
-                placeholder="Enter your display name..."
-                className="w-full px-4 py-2 bg-gray-700 rounded-md border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 text-white"
-                disabled={isCreating || connectionStatus !== 'connected'}
-              />
-              {error && <p className="mt-1 text-sm text-red-400">{error}</p>}
-            </div>
-            
-            <button
-              type="submit"
-              disabled={isCreating || connectionStatus !== 'connected'}
-              className={`w-full font-medium py-2 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-opacity-50 ${
-                isCreating || connectionStatus !== 'connected'
-                  ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                  : 'bg-pink-600 hover:bg-pink-700 text-white focus:ring-pink-500'
-              }`}
-            >
-              {isCreating ? 'Creating Game...' : 'Create Game Room'}
-            </button>
-          </form>
+    <div className="p-4 max-w-md mx-auto bg-white rounded-lg shadow-md">
+      <h2 className="text-xl font-bold mb-4">Launch Game Room</h2>
+      
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block mb-1">Game Session ID:</label>
+          <input
+            type="text"
+            value={gameSessionID}
+            onChange={(e) => setGameSessionID(e.target.value)}
+            className="w-full border rounded-md px-3 py-2"
+            required
+          />
         </div>
         
-        <div className="text-center">
-          <Link 
-            href="/multiplayer"
-            className="text-indigo-400 hover:text-indigo-300 transition-colors duration-200"
-          >
-            ← Back to Multiplayer Menu
-          </Link>
+        <div>
+          <label className="block mb-1">Host ID:</label>
+          <input
+            type="text"
+            value={hostID}
+            onChange={(e) => setHostID(e.target.value)}
+            className="w-full border rounded-md px-3 py-2"
+            required
+          />
         </div>
-      </div>
-      <BottomNavigation/>
+        
+        <div>
+          <label className="block mb-1">Host Username:</label>
+          <input
+            type="text"
+            value={hostUsername}
+            onChange={(e) => setHostUsername(e.target.value)}
+            className="w-full border rounded-md px-3 py-2"
+            required
+          />
+        </div>
+        
+        <button
+          type="submit"
+          className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+          disabled={loading}
+        >
+          {loading ? 'Launching...' : 'Launch Game Room'}
+        </button>
+      </form>
+      
+      {error && (
+        <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md">
+          {error}
+        </div>
+      )}
+      
+      {result && (
+        <div className={`mt-4 p-3 rounded-md ${
+          result.status === 'SUCCESS' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+        }`}>
+          <p><strong>Status:</strong> {result.status}</p>
+          <p><strong>Message:</strong> {result.message}</p>
+        </div>
+      )}
     </div>
   );
 }
