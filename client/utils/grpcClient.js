@@ -23,25 +23,16 @@ export const launchGameRoom = (gameSessionID, hostID, hostUsername) => {
       
       // Based on your proto definition, try these variations:
       try {
-        // Camel case version
-        request.setGameSessionId(gameSessionID);
-        request.setHostId(hostID); 
-        request.setHostUsername(hostUsername);
+        request.setGamesessionid(gameSessionID);
+        request.setHostid(hostID);
+        request.setHostusername(hostUsername);
       } catch (e) {
-        console.error('First attempt failed:', e);
-        try {
-          // All lowercase version
-          request.setGamesessionid(gameSessionID);
-          request.setHostid(hostID);
-          request.setHostusername(hostUsername);
-        } catch (e) {
           console.error('Second attempt failed:', e);
           // Fall back to direct property assignment
           request.gameSessionID = gameSessionID;
           request.hostID = hostID;
           request.hostUsername = hostUsername;
         }
-      }
       
       client.launchGameRoom(request, {}, (err, response) => {
         if (err) {
