@@ -327,6 +327,7 @@ class PaperProtoServer(service_pb2_grpc.PaperProtoServerServicer):
             
             # Check if the requesting user is part of this game
             game_data = self.active_games[request.gameSessionID]
+            logger.info(f"ACTIVE PLAYERS: {game_data["players"]}")
             if request.userID not in game_data["players"]:
                 logger.warning(f"User {request.userID} is not part of game session {request.gameSessionID}")
                 # Again, for streaming, just return empty
