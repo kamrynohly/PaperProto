@@ -247,10 +247,9 @@ export default function CommunityPage() {
               const playerMode = getPlayerModeDisplay(game);
               
               return (
-                // REPLACE TRUE WITH game.isMultiplayer
                 <Link 
                   key={game.id} 
-                  href={true 
+                  href={game.gameMode == "multi" 
                     ? { pathname: '/gameRoom', query: { gameId: game.id } }
                     : `/games/${game.id}`
                   }

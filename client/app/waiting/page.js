@@ -11,13 +11,15 @@ export default function WaitingRoomPage() {
   const params = useParams();
   const router = useRouter();
   const { userData } = useAuth();
-  const { gameSessionID, players, isHost, joinGameSession, fetchPlayers } = useMultiplayer();
+  const { gameId, gameSessionID, players, joinGameSession, fetchPlayers } = useMultiplayer();
   
   const [serverStatus, setServerStatus] = useState('checking');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [copySuccess, setCopySuccess] = useState('');
   const [lastPolled, setLastPolled] = useState(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [countdown, setCountdown] = useState(null);
   
   // Ref to track if we've already joined the session
   const hasJoinedSessionRef = useRef(false);
@@ -42,21 +44,20 @@ export default function WaitingRoomPage() {
   };
   
   // Start player polling when component mounts
-    const startPlayerPolling = () => {
-        // Clear any existing interval first
-        if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        }
-        
-        // Set up polling interval (every 3 seconds instead of 1)
-        pollingIntervalRef.current = setInterval(() => {
-        if (gameSessionID) {
-            console.log('Polling for players...');
-            fetchPlayers(gameSessionID);
-            setLastPolled(new Date());
-        }
-        }, 1000); 
-    };
+  const startPlayerPolling = () => {
+    // Clear any existing interval first
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    
+    // Set up polling interval
+    pollingIntervalRef.current = setInterval(() => {
+      if (gameSessionID) {
+        fetchPlayers(gameSessionID);
+        setLastPolled(new Date());
+      }
+    }, 1000); 
+  };
   
   // Stop player polling when component unmounts
   const stopPlayerPolling = () => {
@@ -70,7 +71,6 @@ export default function WaitingRoomPage() {
   useEffect(() => {
     // Only join if we have the required data AND haven't joined yet
     if (params.id && userData && !hasJoinedSessionRef.current) {
-      console.log('Joining game session:', params.id);
       joinGameSession(params.id);
       // Mark that we've joined to prevent repeated calls
       hasJoinedSessionRef.current = true;
@@ -99,6 +99,36 @@ export default function WaitingRoomPage() {
       clearInterval(statusInterval);
     };
   }, []);
+
+  // Effect to monitor player count and start countdown when it reaches 2 players
+  useEffect(() => {
+    // Check if we have at least 2 players and server is online
+    if (
+      players.length >= 2 && 
+      serverStatus === 'online' && 
+      !isRedirecting && 
+      gameSessionID &&
+      countdown === null
+    ) {
+      // Start 3 second countdown
+      setCountdown(3);
+      setIsRedirecting(true);
+    }
+  }, [players.length, serverStatus, isRedirecting, gameSessionID, countdown]);
+  
+  // Countdown effect
+  useEffect(() => {
+    if (countdown !== null && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    } else if (countdown === 0) {
+      // Redirect when countdown reaches 0
+      router.push(`/games/${gameId}`);
+    }
+  }, [countdown, router, gameId]);
   
   // Function to copy game session ID to clipboard
   const copySessionCode = () => {
@@ -111,21 +141,6 @@ export default function WaitingRoomPage() {
         console.error('Failed to copy:', err);
         setCopySuccess('Failed to copy');
       });
-  };
-  
-  // Function to start the game (only for host)
-  const handleStartGame = () => {
-    if (!isHost) return;
-    
-    setIsLoading(true);
-    try {
-      // Simply redirect to the game page with the session ID
-      router.push(`/game/${gameSessionID}`);
-    } catch (error) {
-      console.error('Error navigating to game:', error);
-      setError('Error starting game: ' + error.message);
-      setIsLoading(false);
-    }
   };
   
   // Function to leave the waiting room
@@ -230,17 +245,27 @@ export default function WaitingRoomPage() {
           
           <div className="mt-6 text-sm text-gray-400 text-center">
             {players.length} {players.length === 1 ? 'player' : 'players'} in the room
-            <div className="flex items-center justify-center mt-2">
-              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-ping mr-2"></div>
-              <span className="text-xs text-indigo-400">Updating player list every second</span>
-              {lastPolled && (
-                <span className="text-xs text-gray-500 ml-2">
-                  (Last update: {lastPolled.toLocaleTimeString()})
-                </span>
-              )}
-            </div>
           </div>
         </div>
+        
+        {/* Countdown Display */}
+        {countdown !== null && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+            <div className="bg-gray-800 rounded-lg border-2 border-pink-500 p-8 text-center shadow-lg" 
+                 style={{ boxShadow: '0 0 20px rgba(236, 72, 153, 0.6)' }}>
+              <h2 className="text-2xl font-bold mb-4 text-white">
+                Game Starting
+              </h2>
+              <div className="text-6xl font-bold text-pink-500 mb-4" 
+                   style={{ textShadow: '0px 0px 10px rgba(236, 72, 153, 0.8)' }}>
+                {countdown}
+              </div>
+              <p className="text-gray-300">
+                Redirecting to game...
+              </p>
+            </div>
+          </div>
+        )}
         
         {/* Action Buttons */}
         <div className="flex space-x-4">
@@ -251,15 +276,12 @@ export default function WaitingRoomPage() {
             Leave Room
           </button>
           
-          {isHost && (
-            <button 
-              onClick={handleStartGame}
-              disabled={serverStatus === 'offline' || players.length < 2}
-              className="flex-1 bg-pink-600 hover:bg-pink-700 text-white font-medium py-3 px-4 rounded-md text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-50 disabled:bg-pink-800 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Starting...' : 'Start Game'}
-            </button>
-          )}
+          <button 
+            disabled={serverStatus === 'offline' || players.length < 2 || isRedirecting}
+            className="flex-1 bg-pink-600 hover:bg-pink-700 text-white font-medium py-3 px-4 rounded-md text-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-50 disabled:bg-pink-800 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Starting...' : 'Start Game'}
+          </button>
         </div>
         
         {/* Error Message */}
@@ -269,10 +291,17 @@ export default function WaitingRoomPage() {
           </div>
         )}
         
-        {/* Conditional Message for Host */}
-        {isHost && players.length < 2 && (
+        {/* Player count message */}
+        {players.length < 2 && (
           <div className="mt-4 text-yellow-400 text-sm text-center">
             At least 2 players are needed to start the game
+          </div>
+        )}
+        
+        {/* Auto-start notification when enough players have joined */}
+        {players.length >= 2 && !countdown && (
+          <div className="mt-4 text-green-400 text-sm text-center">
+            Game will start automatically when 2 players have joined
           </div>
         )}
       </div>

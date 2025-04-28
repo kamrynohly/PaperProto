@@ -2,7 +2,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMultiplayer } from '../../contexts/MultiplayerContext';
 import BottomNavigation from '../../components/BottomNavigation';
@@ -14,8 +14,9 @@ export default function MultiplayerPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [serverStatus, setServerStatus] = useState('checking');
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const gameId = searchParams.get('gameId');
 
-  // Current user data
   const { currentUser, userData } = useAuth();
   const { initializeGameSession, joinGameSession } = useMultiplayer();
 
@@ -61,7 +62,7 @@ export default function MultiplayerPage() {
       // TODO: handle status
       if (result) {
         // Set the game session in the multiplayer context
-        joinGameSession(sessionCode, currentUser.uid, currentUser.username);
+        joinGameSession(gameId, sessionCode, currentUser.uid, userData.username);
         
         // Navigate to the waiting room
         router.push(`/waiting`);
@@ -91,7 +92,7 @@ export default function MultiplayerPage() {
         console.log("Creating game session...");
         
         // Initialize game session in context
-        initializeGameSession(gameSessionID, userID, username);
+        initializeGameSession(gameId, gameSessionID, userID, username);
         
         // Navigate to waiting room
         router.push(`/waiting`);

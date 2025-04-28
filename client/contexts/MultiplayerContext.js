@@ -21,6 +21,7 @@ export const MultiplayerProvider = ({ children }) => {
   const { currentUser, userData } = useAuth();
   
   // Game session state
+  const [gameId, setGameId] = useState(null);
   const [gameSessionID, setGameSessionID] = useState(null);
   const [creatorID, setCreatorID] = useState(null);
   const [creatorUsername, setCreatorUsername] = useState(null);
@@ -127,11 +128,12 @@ const fetchPlayers = async (sessionID) => {
   };
   
   // Function to initialize a new game session
-  const initializeGameSession = (sessionID, hostID, hostUsername) => {
+  const initializeGameSession = (gameId, sessionID, hostID, hostUsername) => {
     // Reset player tracking first
     existingPlayerIdsRef.current = new Set();
     
     // Set all game session states at once to prevent multiple renders
+    setGameId(gameId);
     setGameSessionID(sessionID);
     setCreatorID(hostID);
     setCreatorUsername(hostUsername);
@@ -146,7 +148,7 @@ const fetchPlayers = async (sessionID) => {
   
   
     // Function to join an existing game session
-    const joinGameSession = (sessionID, userID, username) => {
+    const joinGameSession = (gameId, sessionID, userID, username) => {
         // Only update if the session ID is different
         if (gameSessionID === sessionID) return;
         
@@ -155,6 +157,7 @@ const fetchPlayers = async (sessionID) => {
         setPlayers([]);
         
         // Set game session ID
+        setGameId(gameId);
         setGameSessionID(sessionID);
         
         // Add the joining player to the tracked players first
@@ -198,6 +201,7 @@ const fetchPlayers = async (sessionID) => {
   // Context value
   const value = {
     // State
+    gameId,
     gameSessionID,
     creatorID,
     creatorUsername,
