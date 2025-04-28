@@ -1,11 +1,21 @@
 // app/opengraph-image.js
 import { ImageResponse } from 'next/og';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 
-// This function handles loading the font files
-async function loadFonts() {
-  // For safety, wrap in try/catch in case files can't be loaded
+// No fs or path imports needed
+
+export const runtime = 'edge';
+
+export const alt = 'PaperProto - From pen & paper straight to play!';
+export const size = {
+  width: 1200,
+  height: 630,
+};
+
+export const contentType = 'image/png';
+
+export default async function OG() {
+  // Load fonts (optimized for Edge runtime)
+  let fonts = [];
   try {
     const pressStart2P = await fetch(
       new URL('../public/fonts/PressStart2P-Regular.ttf', import.meta.url)
@@ -15,7 +25,7 @@ async function loadFonts() {
       new URL('../public/fonts/PixelifySans-Regular.ttf', import.meta.url)
     ).then((res) => res.arrayBuffer());
     
-    return [
+    fonts = [
       {
         name: 'Press Start 2P',
         data: pressStart2P,
@@ -31,22 +41,8 @@ async function loadFonts() {
     ];
   } catch (e) {
     console.log('Error loading fonts:', e);
-    return []; // Return empty array if fonts fail to load
+    // Continue without custom fonts if they fail to load
   }
-}
-
-export const runtime = 'edge';
-
-export const alt = 'PaperProto - From pen & paper straight to play!';
-export const size = {
-  width: 1200,
-  height: 630,
-};
-
-export const contentType = 'image/png';
-
-export default async function OG() {
-  const fonts = await loadFonts();
   
   return new ImageResponse(
     (
