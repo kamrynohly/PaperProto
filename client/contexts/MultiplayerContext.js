@@ -50,7 +50,70 @@ export const MultiplayerProvider = ({ children }) => {
   }, []);
 
   // Function to fetch players for a specific game session
-  const fetchPlayers = async (sessionID) => {
+//   const fetchPlayers = async (sessionID) => {
+//     if (!sessionID || !userData || !currentUser?.uid) {
+//       return;
+//     }
+    
+//     console.log('Fetching players for session:', sessionID);
+    
+//     // Cancel existing stream if any
+//     if (playerStreamRef.current) {
+//       playerStreamRef.current.cancel();
+//       playerStreamRef.current = null;
+//     }
+    
+//     // Reset player tracking for fresh fetch
+//     existingPlayerIdsRef.current = new Set();
+    
+//     // Create the stream
+//     const stream = getPlayers(sessionID, currentUser.uid);
+    
+//     // Store reference in ref to avoid state updates
+//     playerStreamRef.current = stream;
+    
+//     // Listen for data events
+//     stream.on('data', (player) => {
+//         console.log("NEW PLAYER?????", player)
+//       if (!player || !player.userID) return;
+      
+//       // Only update state if this is a new player
+//       if (!existingPlayerIdsRef.current.has(player.userID)) {
+//         existingPlayerIdsRef.current.add(player.userID);
+        
+//         setPlayers(prevPlayers => {
+//           // Double-check we don't already have this player (extra safety)
+//           if (prevPlayers.some(p => p.userID === player.userID)) {
+//             return prevPlayers;
+//           }
+//           return [...prevPlayers, player];
+//         });
+        
+//         // We need to be careful about setting creator info to avoid re-renders
+//         if (player.isCreator && !creatorID && player.userID) {
+//           setCreatorID(player.userID);
+//           if (typeof player.username === 'string') {
+//             setCreatorUsername(player.username);
+//           }
+//         }
+//       }
+//     });
+    
+//     // Handle errors
+//     stream.on('error', (error) => {
+//       console.error('Player monitoring stream error:', error);
+//       // Implement reconnection logic if needed
+//     });
+    
+//     // Handle stream end
+//     stream.on('end', () => {
+//       console.log('Player monitoring stream ended');
+//       // Maybe attempt to resubscribe after a delay
+//     });
+//   };
+
+// Function to fetch players for a specific game session
+const fetchPlayers = async (sessionID) => {
     if (!sessionID || !userData || !currentUser?.uid) {
       return;
     }
@@ -66,6 +129,7 @@ export const MultiplayerProvider = ({ children }) => {
     // Reset player tracking for fresh fetch
     existingPlayerIdsRef.current = new Set();
     
+// <<<<<<< Updated upstream
     // Create the stream
     const stream = getPlayers(sessionID, currentUser.uid);
     
@@ -104,6 +168,42 @@ export const MultiplayerProvider = ({ children }) => {
         }
         }
     });
+// =======
+    // // Create the stream with a callback function
+    // const stream = getPlayers(
+    //   sessionID, 
+    //   currentUser.uid, 
+    //   (player) => {
+    //     console.log("Player received:", player.username);
+        
+    //     if (!player || !player.userID) return;
+        
+    //     // Only update state if this is a new player
+    //     if (!existingPlayerIdsRef.current.has(player.userID)) {
+    //       existingPlayerIdsRef.current.add(player.userID);
+          
+    //       setPlayers(prevPlayers => {
+    //         // Double-check we don't already have this player (extra safety)
+    //         if (prevPlayers.some(p => p.userID === player.userID)) {
+    //           return prevPlayers;
+    //         }
+    //         return [...prevPlayers, player];
+    //       });
+          
+    //       // We need to be careful about setting creator info to avoid re-renders
+    //       if (player.isCreator && !creatorID && player.userID) {
+    //         setCreatorID(player.userID);
+    //         if (typeof player.username === 'string') {
+    //           setCreatorUsername(player.username);
+    //         }
+    //       }
+    //     }
+    //   }
+    // );
+    
+    // // Store reference in ref to avoid state updates
+    // playerStreamRef.current = stream;
+// >>>>>>> Stashed changes
     
     // Handle errors
     stream.on('error', (error) => {
@@ -144,32 +244,41 @@ export const MultiplayerProvider = ({ children }) => {
   };
   
   // Function to join an existing game session
-  // const joinGameSession = (sessionID, userID, username) => {
-  //   // Only update if the session ID is different
-  //   if (gameSessionID === sessionID) return;
+//   const joinGameSession = (sessionID, userID, username) => {
+//     // Only update if the session ID is different
+//     if (gameSessionID === sessionID) return;
     
-  //   // Reset player tracking first
-  //   existingPlayerIdsRef.current = new Set();
-  //   setPlayers([]);
+//     // Reset player tracking first
+//     existingPlayerIdsRef.current = new Set();
+//     setPlayers([]);
     
-  //   // Set game session ID
-  //   setGameSessionID(sessionID);
+//     // Set game session ID
+//     setGameSessionID(sessionID);
     
-  //   // Fetch players for this session
-  //   fetchPlayers(sessionID);
-  // };
+//     // Fetch players for this session
+//     fetchPlayers(sessionID);
+//   };
   
-  // Function to join an existing game session
-  const joinGameSession = (sessionID, userID, username) => {
-    // Only update if the session ID is different
-    if (gameSessionID === sessionID) return;
-    
-    // Reset player tracking first
-    existingPlayerIdsRef.current = new Set();
-    setPlayers([]);
-    
-    // Set game session ID
-    setGameSessionID(sessionID);
+    // Function to join an existing game session
+    const joinGameSession = (sessionID, userID, username) => {
+        // Only update if the session ID is different
+        if (gameSessionID === sessionID) return;
+        
+        // Reset player tracking first
+        existingPlayerIdsRef.current = new Set();
+        setPlayers([]);
+        
+        // Set game session ID
+        setGameSessionID(sessionID);
+        
+        // Add the joining player to the tracked players first
+        if (userID && username) {
+            existingPlayerIdsRef.current.add(userID);
+            setPlayers([{
+                userID,
+                username
+        }]);
+    }
     
     // Add the joining player to the tracked players first
     if (userID && username) {

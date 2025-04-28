@@ -55,7 +55,7 @@ export default function MultiplayerPage() {
       const result = await joinGameRoom(
         sessionCode, 
         currentUser.uid, 
-        currentUser.username
+        userData.username
       );
       
       // TODO: handle status

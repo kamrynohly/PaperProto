@@ -93,22 +93,61 @@ class PaperProtoServer(service_pb2_grpc.PaperProtoServerServicer):
                 message=f"Error creating game room: {str(e)}"
             )
 
+    # def JoinGameRoom(self, request, context):
+    #     """
+    #     Handles a client's RPC request to join an existing game room.
+
+    #     Parameters:
+    #         request (JoinGameRoomRequest): Contains join request details.
+    #             - gameSessionID (str): The ID of the game session to join.
+    #             - userID (str): The unique ID of the joining player.
+    #             - username (str): The username of the joining player.
+    #         context (RPCContext): The RPC call context.
+
+    #     Returns:
+    #         JoinGameRoomResponse: A response indicating the status of the join request.
+    #             - status (JoinGameRoomStatus): SUCCESS or FAILURE.
+    #             - message (str): Description of the result.
+    #     """
+    #     try:
+    #         logger.info(f"Player {request.username} attempting to join game session {request.gameSessionID}")
+            
+    #         # Check if the game session exists
+    #         if request.gameSessionID not in self.active_games:
+    #             logger.warning(f"Game session ID {request.gameSessionID} does not exist")
+    #             return service_pb2.JoinGameRoomResponse(
+    #                 status=service_pb2.JoinGameRoomResponse.JoinGameRoomStatus.FAILURE,
+    #                 message="Game session does not exist"
+    #             )
+            
+    #         # Check if the game is still active
+    #         if not self.active_games[request.gameSessionID]["isActive"]:
+    #             logger.warning(f"Game session {request.gameSessionID} is no longer active")
+    #             return service_pb2.JoinGameRoomResponse(
+    #                 status=service_pb2.JoinGameRoomResponse.JoinGameRoomStatus.FAILURE,
+    #                 message="Game session is no longer active"
+    #             )
+            
+    #         # Add the player to the game session
+    #         self.active_games[request.gameSessionID]["players"][request.userID] = {
+    #             "username": request.username,
+    #             "isHost": False
+    #         }
+            
+    #         return service_pb2.JoinGameRoomResponse(
+    #             status=service_pb2.JoinGameRoomResponse.JoinGameRoomStatus.SUCCESS,
+    #             message="Successfully joined game room"
+    #         )
+            
+    #     except Exception as e:
+    #         logger.error(f"Failed to join game room with error: {e}")
+    #         return service_pb2.JoinGameRoomResponse(
+    #             status=service_pb2.JoinGameRoomResponse.JoinGameRoomStatus.FAILURE,
+    #             message=f"Error joining game room: {str(e)}"
+    #         )
+
+
     def JoinGameRoom(self, request, context):
-        """
-        Handles a client's RPC request to join an existing game room.
-
-        Parameters:
-            request (JoinGameRoomRequest): Contains join request details.
-                - gameSessionID (str): The ID of the game session to join.
-                - userID (str): The unique ID of the joining player.
-                - username (str): The username of the joining player.
-            context (RPCContext): The RPC call context.
-
-        Returns:
-            JoinGameRoomResponse: A response indicating the status of the join request.
-                - status (JoinGameRoomStatus): SUCCESS or FAILURE.
-                - message (str): Description of the result.
-        """
         try:
             logger.info(f"Player {request.username} attempting to join game session {request.gameSessionID}")
             
@@ -120,19 +159,17 @@ class PaperProtoServer(service_pb2_grpc.PaperProtoServerServicer):
                     message="Game session does not exist"
                 )
             
-            # Check if the game is still active
-            if not self.active_games[request.gameSessionID]["isActive"]:
-                logger.warning(f"Game session {request.gameSessionID} is no longer active")
-                return service_pb2.JoinGameRoomResponse(
-                    status=service_pb2.JoinGameRoomResponse.JoinGameRoomStatus.FAILURE,
-                    message="Game session is no longer active"
-                )
+            # Log the current players before adding the new one
+            logger.info(f"Current players before join: {self.active_games[request.gameSessionID]['players']}")
             
             # Add the player to the game session
             self.active_games[request.gameSessionID]["players"][request.userID] = {
                 "username": request.username,
                 "isHost": False
             }
+            
+            # Log the players after adding the new one
+            logger.info(f"Players after join: {self.active_games[request.gameSessionID]['players']}")
             
             return service_pb2.JoinGameRoomResponse(
                 status=service_pb2.JoinGameRoomResponse.JoinGameRoomStatus.SUCCESS,
