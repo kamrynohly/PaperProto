@@ -6,6 +6,9 @@ const nextConfig = {
         'firebasestorage.googleapis.com',
       ],
     },
+    experimental: {
+        optimizeFonts: true,
+    }
   }
   
   export default nextConfig;
