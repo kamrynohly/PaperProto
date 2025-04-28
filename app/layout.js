@@ -1,8 +1,14 @@
 // app/layout.js
-'use client';
+// 'use client';
 
 import { AuthProvider } from '../contexts/AuthContext';
 import './globals.css';
+
+export const metadata = {
+  metadataBase: new URL('https://paper-proto.com'),
+  title: 'PaperProto',
+  description: 'From pen to play!',
+}
 
 export default function RootLayout({ children }) {
   return (
