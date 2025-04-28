@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 7, "column": 0}, "map": {"version":3,"sources":["file:///Users/graceli/Documents/Dev/PaperProtoTwo/PaperProto/app/games/%5Bid%5D/layout.js"],"sourcesContent":["// app/games/[id]/layout.js\nexport default function GameLayout({ children }) {\n    return (\n      <div className=\"w-full h-screen\">\n        {children}\n      </div>\n    );\n}"],"names":[],"mappings":"AAAA,2BAA2B;;;;;;AACZ,SAAS,WAAW,EAAE,QAAQ,EAAE;IAC3C,qBACE,8OAAC;QAAI,WAAU;kBACZ;;;;;;AAGT","debugId":null}}]
-}
