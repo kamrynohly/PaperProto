@@ -1,9 +1,12 @@
 'use client';
 
+import { v4 as uuidv4 } from 'uuid';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../../contexts/AuthContext';
+import { useMultiplayer } from '../../contexts/MultiplayerContext';
 import BottomNavigation from '../../components/BottomNavigation';
-import { heartbeat } from '../../utils/grpcClient';
+import { launchGameRoom, joinGameRoom, heartbeat } from '../../utils/grpcClient';
 
 export default function MultiplayerPage() {
   const [sessionCode, setSessionCode] = useState('');
@@ -11,7 +14,11 @@ export default function MultiplayerPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [serverStatus, setServerStatus] = useState('checking');
   const router = useRouter();
-  
+
+  // Current user data
+  const { currentUser, userData } = useAuth();
+  const { initializeGameSession, joinGameSession } = useMultiplayer();
+
   // Check server connection on component mount
   useEffect(() => {
     checkServerStatus();
@@ -21,10 +28,8 @@ export default function MultiplayerPage() {
   const checkServerStatus = async () => {
     setServerStatus('checking');
     try {
-      // Use the heartbeat function with requestorID=1 and serverID=1
-      const result = await heartbeat(1, 1);
+      const result = await heartbeat("requesterID", "serverID");
       
-      // Check status from the heartbeat response
       if (result && result.status) {
         setServerStatus('online');
       } else {
@@ -36,32 +41,70 @@ export default function MultiplayerPage() {
     }
   };
   
-  const handleJoinGame = (e) => {
+  const handleJoinGame = async (e) => {
     e.preventDefault();
     if (!sessionCode.trim()) {
       setError('Please enter a valid game session code');
       return;
     }
     
-    router.push(`/gameroom/${sessionCode}`);
-  };
-  
-  const handleCreateGame = (e) => {
-    e.preventDefault();
     setIsLoading(true);
     
-    // Here you would implement the logic to create a new game
-    // For example:
-    // 1. Call your API to create a new game session
-    // 2. Get the session code from the response
-    // 3. Navigate to the game room with the new session code
-    
-    // Placeholder implementation
-    setTimeout(() => {
-      const newSessionCode = Math.floor(100000 + Math.random() * 900000).toString();
+    try {
+      // Call the joinGameRoom gRPC function
+      const result = await joinGameRoom(
+        sessionCode, 
+        userData.userID, 
+        userData.username
+      );
+      
+      // TODO: handle status
+      if (result) {
+        // Set the game session in the multiplayer context
+        joinGameSession(sessionCode);
+        
+        // Navigate to the waiting room
+        router.push(`/waiting`);
+      } else {
+        setError('Failed to join game. The session may not exist or has ended.');
+      }
+    } catch (error) {
+      console.error('Error joining game:', error);
+      setError(error.message || 'An error occurred while joining the game.');
+    } finally {
       setIsLoading(false);
-      router.push(`/gameroom/${newSessionCode}`);
-    }, 1500);
+    }
+  };
+
+  const handleCreateGame = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    const gameSessionID = uuidv4();
+    const userID = userData.userID;
+    const username = userData.username;
+    
+    try {
+      const result = await launchGameRoom(gameSessionID, userID, username);
+      
+      if (result) {
+        console.log("Creating game session...");
+        
+        // Initialize game session in context
+        initializeGameSession(gameSessionID, userID, username);
+        
+        // Navigate to waiting room
+        router.push(`/waiting`);
+      } else {
+        console.log("Something went wrong creating game session");
+        setError("Failed to create game session. Please try again.");
+      }
+    } catch (error) {
+      console.error('Game session creation failed:', error);
+      setError(error.message || "An error occurred");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Get status indicator color
@@ -76,9 +119,9 @@ export default function MultiplayerPage() {
   // Get status text
   const getStatusText = () => {
     switch (serverStatus) {
-      case 'online': return 'gRPC Server Online';
-      case 'offline': return 'gRPC Server Offline';
-      default: return 'Checking gRPC Server...';
+      case 'online': return 'Server Online';
+      case 'offline': return 'Server Offline';
+      default: return 'Checking Server Status...';
     }
   };
 
@@ -105,7 +148,7 @@ export default function MultiplayerPage() {
           </div>
         </div>
         
-        {/* Create Game Section - Now above Join Game */}
+        {/* Create Game Section */}
         <div className="bg-gray-800 rounded-lg border-2 border-indigo-500 p-6 mb-8 shadow-lg"
              style={{ boxShadow: '0 0 15px rgba(99, 102, 241, 0.4)' }}>
           <h2 className="text-xl font-semibold mb-4 text-indigo-400">Create New Game</h2>
@@ -142,7 +185,7 @@ export default function MultiplayerPage() {
                   setSessionCode(e.target.value);
                   setError('');
                 }}
-                placeholder="Enter 6-digit code..."
+                placeholder="Enter game session code..."
                 className="w-full px-4 py-2 bg-gray-700 rounded-md border border-gray-600 focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50 text-white"
               />
               {error && <p className="mt-1 text-sm text-red-400">{error}</p>}

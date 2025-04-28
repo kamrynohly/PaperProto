@@ -18,7 +18,7 @@ const client = new PaperProtoServerClient('http://localhost:8080');
 export const launchGameRoom = (gameSessionID, hostID, hostUsername) => {
   return new Promise((resolve, reject) => {
     const request = new LaunchGameRoomRequest();
-    
+
     try {
       request.setGamesessionid(gameSessionID);
       request.setHostid(hostID);
@@ -30,7 +30,7 @@ export const launchGameRoom = (gameSessionID, hostID, hostUsername) => {
       request.hostID = hostID;
       request.hostUsername = hostUsername;
     }
-    
+
     client.launchGameRoom(request, {}, (err, response) => {
       if (err) {
         console.error('gRPC call failed:', err);
@@ -46,6 +46,8 @@ export const launchGameRoom = (gameSessionID, hostID, hostUsername) => {
     });
   });
 };
+
+
 
 // Join Game Room
 export const joinGameRoom = (gameSessionID, userID, username) => {

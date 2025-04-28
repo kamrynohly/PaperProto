@@ -2,6 +2,7 @@
 'use client';
 
 import { AuthProvider } from '../contexts/AuthContext';
+import { MultiplayerProvider } from '../contexts/MultiplayerContext';
 import './globals.css';
 
 export default function RootLayout({ children }) {
@@ -15,7 +16,9 @@ export default function RootLayout({ children }) {
           <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-pink-500"></div>
           <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-pink-500"></div>
           {/* Pages demonstrated by the children */}
-          {children}
+          <MultiplayerProvider>
+            {children}
+          </MultiplayerProvider>
         </AuthProvider>
       </body>
     </html>

@@ -247,7 +247,6 @@ export default function CommunityPage() {
               const playerMode = getPlayerModeDisplay(game);
               
               return (
-                // <Link key={game.id} href={`/games/${game.id}`}>
                 // REPLACE TRUE WITH game.isMultiplayer
                 <Link 
                   key={game.id} 
