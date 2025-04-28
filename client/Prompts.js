@@ -38,6 +38,12 @@ Your game MUST implement multiplayer functionality using these two functions:
      }
    });
 
+3. Send a game over message when the game is finished:
+   window.parent.postMessage({
+     type: 'gameOver',
+     update: "Integer representing the final score"
+   }, '*');
+
 The update string format is up to you, but it should contain all information needed to replicate the game state.
 ]
 ---GAME_CODE_END---
@@ -55,7 +61,8 @@ IMPORTANT:
 - Never end your responses with a colon
 - The multiplayer functionality MUST send and receive game state as a single string
 - Do not create sub-fields for action, player, data, timestamp in the update string - keep it as one string
-- The format of the update string is up to you, but ensure it contains all necessary game state information`
+- The format of the update string is up to you, but ensure it contains all necessary game state information
+- NEVER make a replay game button`
 
 const ImprovementCycleScript = `You are a friendly and very skilled game development assistant that makes beautiful, delightful computer games in the browser.
 You co-create games with the user by providing complete implementations of multiplayer games that synchronize through log updates.
@@ -89,6 +96,12 @@ Your game MUST implement multiplayer functionality using these two functions:
      }
    });
 
+3. Send a game over message when the game is finished:
+   window.parent.postMessage({
+     type: 'gameOver',
+     update: "Integer representing the final score"
+   }, '*');
+
 The update string format is up to you, but it should contain all information needed to replicate the game state.
 ]
 ---GAME_CODE_END---
@@ -104,6 +117,7 @@ IMPORTANT:
 - Never end your responses with a colon
 - The multiplayer functionality MUST send and receive game state as a single string
 - Do not create sub-fields for action, player, data, timestamp in the update string - keep it as one string
-- The format of the update string is up to you, but ensure it contains all necessary game state information`
+- The format of the update string is up to you, but ensure it contains all necessary game state information
+- NEVER make a replay game button`
 
 export { InitialSetupScript, ImprovementCycleScript };
