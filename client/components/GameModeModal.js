@@ -16,7 +16,7 @@ export default function GameModeModal({ isOpen, onClose, onSelectMode }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-0 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-opacity-20 flex items-center justify-center z-50">
       <div className="bg-indigo-900 border-4 border-pink-500 text-white px-6 py-4 rounded-md shadow-[0px_0px_15px_5px_rgba(236,72,153,0.5)] w-full max-w-md">
         <div className="text-center">
           <p className="text-lg font-bold text-pink-400" style={{ fontFamily: '"Press Start 2P", cursive', fontSize: '18px' }}>
