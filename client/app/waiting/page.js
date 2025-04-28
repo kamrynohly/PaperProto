@@ -176,24 +176,24 @@ export default function WaitingRoomPage() {
         
         {/* Game Session Code */}
         <div className="bg-gray-800 rounded-lg border-2 border-indigo-500 p-6 mb-8 shadow-lg"
-             style={{ boxShadow: '0 0 15px rgba(99, 102, 241, 0.4)' }}>
-          <h2 className="text-xl font-semibold mb-4 text-indigo-400">Game Session</h2>
-          
-          <div className="flex items-center mb-4">
-            <div className="flex-1 bg-gray-700 px-4 py-2 rounded-l-md border border-gray-600 text-white">
-              {gameSessionID}
+            style={{ boxShadow: '0 0 15px rgba(99, 102, 241, 0.4)' }}>
+        <h2 className="text-xl font-semibold mb-4 text-indigo-400">Game Session</h2>
+        
+        <div className="flex flex-col sm:flex-row items-stretch mb-4">
+            <div className="bg-gray-700 px-4 py-2 rounded-t-md sm:rounded-l-md sm:rounded-tr-none border border-gray-600 text-white break-all">
+            {gameSessionID}
             </div>
             <button 
-              onClick={copySessionCode}
-              className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-r-md border border-indigo-600 text-white transition-colors duration-200"
+            onClick={copySessionCode}
+            className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-b-md sm:rounded-r-md sm:rounded-bl-none border border-indigo-600 text-white transition-colors duration-200 whitespace-nowrap"
             >
-              {copySuccess || 'Copy'}
+            {copySuccess || 'Copy'}
             </button>
-          </div>
-          
-          <p className="text-gray-300 text-sm">
+        </div>
+        
+        <p className="text-gray-300 text-sm">
             Share this code with friends to let them join your game.
-          </p>
+        </p>
         </div>
         
         {/* Players List */}
