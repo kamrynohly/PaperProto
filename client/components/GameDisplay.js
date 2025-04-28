@@ -3,17 +3,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import DinoGame from './DinoGame';
-import { subscribeToGameUpdates, sendGameUpdate } from '../utils/grpcClient';
-import { useAuth } from '../contexts/AuthContext';
 
 export default function GameDisplay({ gameCode, gameType, loading }) {
   const [gameTitle, setGameTitle] = useState('');
-  const [gameMessages, setGameMessages] = useState([]);
-  const [loaded, setLoaded] = useState(false);
   const gameContainerRef = useRef(null);
   const iframeRef = useRef(null);
-  const streamRef = useRef(null);
-  const { currentUser, userData } = useAuth();
 
   // Update display title when gameType changes
   useEffect(() => {
@@ -25,101 +19,6 @@ export default function GameDisplay({ gameCode, gameType, loading }) {
       setGameTitle(formattedType);
     }
   }, [gameType]);
-
-  // Setup message listener for communication from iframe
-  useEffect(() => {
-    const handleMessage = async (event) => {
-      console.log('Message received from game:', event.data);
-      
-      // Verify message format
-      if (event.data && typeof event.data.type === 'string') {
-        // Store message for debugging or state management
-        setGameMessages(prev => [...prev, event.data]);
-        
-        switch(event.data.type) {
-          case 'updateGameState':
-            console.log('Game state updated:', event.data.update);
-
-            try {
-              const response = await sendGameUpdate(userData.id, event.data.update);
-              console.log('Game update response:', response);
-            } catch (error) {
-              console.error('Failed to send game update:', error);
-            }
-            break;
-          case 'gameOver':
-            console.log('Game over. Final score:', event.data.arguments?.[0]);
-            break;
-        }
-      }
-    };
-
-    // Add message event listener
-    window.addEventListener('message', handleMessage);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  }, [userData]);
-
-  // Function to update game in the iframe
-  const updateGame = (type, update) => {
-    if (iframeRef.current && iframeRef.current.contentWindow) {
-      iframeRef.current.contentWindow.postMessage({
-        type: type,
-        update: update
-      }, '*');
-    }
-  };
-
-  // Setup game update subscription
-  useEffect(() => {
-    // Only subscribe if gameCode exists and we have userData
-    if (!gameCode) return;
-    
-    try {
-      console.log('Setting up game update subscription');
-      
-      // Create the stream
-      const stream = subscribeToGameUpdates({
-        gameSessionID: "hardcoded",
-        userID: userData.id
-      });
-      
-      // Store reference to the stream
-      streamRef.current = stream;
-      
-      // Listen for data events
-      stream.on('data', (update) => {
-        console.log('Received game update:', update);
-        updateGame("updateGameState", update);
-      });
-      
-      // Handle errors
-      stream.on('error', (error) => {
-        console.error('Game update stream error:', error);
-        // Implement reconnection logic if needed
-      });
-      
-      // Handle stream end
-      stream.on('end', () => {
-        console.log('Game update stream ended');
-        // Maybe attempt to resubscribe after a delay
-      });
-    } catch (error) {
-      console.error('Failed to setup game update subscription:', error);
-    }
-    
-    // Clean up when component unmounts or gameCode changes
-    return () => {
-      if (streamRef.current) {
-        console.log('Cancelling game update subscription');
-        streamRef.current.cancel();
-        streamRef.current = null;
-      }
-    };
-  }, [gameCode, userData]);
 
   // Render the generated game into an iframe
   useEffect(() => {
@@ -135,14 +34,9 @@ export default function GameDisplay({ gameCode, gameType, loading }) {
       iframe.style.width = '100%';
       iframe.style.height = '100%';
       iframe.style.border = 'none';
-      iframe.sandbox = 'allow-scripts';
       iframe.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture';
       iframe.title = gameTitle || 'Game';
-      
-      // Reset loaded state when changing games
-      setLoaded(false);
 
-      // Store reference
       iframeRef.current = iframe;
       gameContainerRef.current.appendChild(iframe);
 
@@ -160,103 +54,60 @@ export default function GameDisplay({ gameCode, gameType, loading }) {
       if (cssMatch) cssContent = cssMatch[1];
       if (jsMatch)  jsContent  = jsMatch[1];
 
-      // Build a complete HTML document
-      const doc = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <title>${gameTitle || 'Game'}</title>
-          <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
-          <style>
-            body {
-              margin:0; padding:0;
-              overflow:hidden;
-              display:flex; justify-content:center; align-items:center;
-              width:100%; height:100%;
-              background-color: #161B22;
-              color: #FFFFFF;
-              font-family: 'Pixelify Sans', sans-serif;
-            }
-            ${cssContent}
-          </style>
-        </head>
-        <body>
-          <div id="game-container">
-            ${htmlContent}
-          </div>
-          <script>
-            (function() {
-              try {
-                // Track image loading
-                const OriginalImage = window.Image;
-                const promises = [];
-                window.Image = function() {
-                  const img = new OriginalImage();
-                  promises.push(new Promise(r => {
-                    img.onload = r;
-                    img.onerror = r;
-                  }));
-                  return img;
-                };
-
-                // Define callParentFunction for iframe to call parent
-                window.callParentFunction = function(type, ...args) {
-                  window.parent.postMessage({
-                    type: type,
-                    arguments: args
-                  }, '*');
-                };
-
-                // Handle incoming messages from parent
-                window.addEventListener('message', (event) => {
-                  if (event.data && event.data.type === 'updateGameState') {
-                    console.log('Received update from parent:', event.data.update);
-                    // Game should implement handling for this
-                  }
-                });
-
-                Promise.all(promises).finally(() => {
-                  // Run any exposed game loops
-                  [window.gameLoop, window.update, window.animate, window.draw, window.render, window.loop]
-                    .filter(fn => typeof fn === 'function')
-                    .forEach(fn => { try { fn(); } catch(e){} });
-                    
-                  // Notify parent that game is loaded
-                  window.callParentFunction('ready', '${gameTitle}');
-                  
-                  // Set loaded state
-                  setTimeout(() => {
-                    window.callParentFunction('loaded');
-                  }, 500);
-                });
-
-                ${jsContent}
-                
-              } catch(e) {
-                document.body.innerHTML = '<div style="color:#EC4899;text-align:center;">Game Error: ' + e.message + '</div>';
-                console.error(e);
-                window.callParentFunction('error', e.message);
+      // Write into iframe with dark theme
+      setTimeout(() => {
+        const doc = iframe.contentDocument;
+        doc.open();
+        doc.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>${gameTitle || 'Game'}</title>
+            <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
+            <style>
+              body {
+                margin:0; padding:0;
+                overflow:hidden;
+                display:flex; justify-content:center; align-items:center;
+                width:100%; height:100%;
+                background-color: #161B22;
+                color: #FFFFFF;
+                font-family: 'Pixelify Sans', sans-serif;
               }
-            })();
-          </script>
-        </body>
-        </html>
-      `;
+              ${cssContent}
+            </style>
+          </head>
+          <body>
+            ${htmlContent}
+            <script>
+              // Track image loading
+              const OriginalImage = window.Image;
+              const promises = [];
+              window.Image = function() {
+                const img = new OriginalImage();
+                promises.push(new Promise(r => {
+                  img.onload = r;
+                  img.onerror = r;
+                }));
+                return img;
+              };
 
-      // Use srcdoc for better security
-      iframe.srcdoc = doc;
-      
-      // Set up listener for loaded message
-      const handleIframeMessage = (event) => {
-        if (event.data && event.data.type === 'loaded') {
-          setLoaded(true);
-          window.removeEventListener('message', handleIframeMessage);
-        }
-      };
-      
-      window.addEventListener('message', handleIframeMessage);
+              Promise.all(promises).finally(() => {
+                // Run any exposed game loops
+                [window.gameLoop, window.update, window.animate, window.draw, window.render, window.loop]
+                  .filter(fn => typeof fn === 'function')
+                  .forEach(fn => { try { fn(); } catch(e){} });
+              });
+
+              ${jsContent}
+            </script>
+          </body>
+          </html>
+        `);
+        doc.close();
+      }, 0);
 
     } catch (error) {
       console.error('Error rendering game:', error);
@@ -278,20 +129,18 @@ export default function GameDisplay({ gameCode, gameType, loading }) {
             <div className="flex-1 w-full h-full pixel-border rounded-lg overflow-hidden bg-gray-800 crt-on">
               <DinoGame />
             </div>
+            {/* Loading message */}
+            <div className="absolute bottom-30 left-0 right-0 text-center">
+              {/* <p className="text-lg font-medium retro-text text-indigo-300">
+                Play while we cook!
+              </p> */}
+            </div>
           </div>
         ) : gameCode ? (
-          <div className="relative w-full h-full">
-            {/* Loading spinner */}
-            {!loaded && (
-              <div className="absolute inset-0 flex items-center justify-center z-10">
-                <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            )}
-            <div
-              ref={gameContainerRef}
-              className={`w-full h-full flex items-center justify-center overflow-auto pixel-border rounded-lg bg-gray-800 crt-on transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-30'}`}
-            />
-          </div>
+          <div
+            ref={gameContainerRef}
+            className="w-full h-full flex items-center justify-center overflow-auto pixel-border rounded-lg bg-gray-800 crt-on"
+          />
         ) : (
           <div className="text-center max-w-md bg-gray-800 p-8 rounded-lg pixel-border crt-on">
             <p className="text-lg font-medium retro-text text-indigo-300 mb-2">

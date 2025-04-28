@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ChatInterface from '../../components/ChatInterface';
 import GameDisplay from '../../components/GameDisplay';
+import GameDisplayMulti from '../../components/GameDisplayMulti';
 import { Gamepad2, MessageSquare, AlertTriangle, Share2, Users } from 'lucide-react';
 import BottomNavigation from '../../components/BottomNavigation';
 import { useAuth } from '../../contexts/AuthContext';
@@ -219,12 +220,22 @@ export default function Home() {
               )}
             </div>
             {/* Pass explicitly loading={loading} to ensure the prop is passed */}
-            <GameDisplay 
-              gameCode={gameCode} 
-              gameType={gameType}
-              gameMode={gameMode} // Pass game mode to display component
-              loading={loading} 
-            />
+
+            {
+                gameMode === 'single' ? (
+                    <GameDisplay 
+                        gameCode={gameCode} 
+                        gameType={gameType}
+                        loading={loading} 
+                    />
+                ) : (
+                    <GameDisplayMulti
+                        gameCode={gameCode} 
+                        gameType={gameType}
+                        loading={loading} 
+                    />
+                )
+            }
           </div>
         </div>
       </main>
