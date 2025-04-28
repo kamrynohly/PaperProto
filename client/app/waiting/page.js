@@ -42,26 +42,21 @@ export default function WaitingRoomPage() {
   };
   
   // Start player polling when component mounts
-  const startPlayerPolling = () => {
-    // Clear any existing interval first
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-    }
-    
-    // Do an initial fetch
-    if (gameSessionID) {
-      fetchPlayers(gameSessionID);
-      setLastPolled(new Date());
-    }
-    
-    // Set up polling interval (every second)
-    pollingIntervalRef.current = setInterval(() => {
-      if (gameSessionID) {
-        fetchPlayers(gameSessionID);
-        setLastPolled(new Date());
-      }
-    }, 1000);
-  };
+    const startPlayerPolling = () => {
+        // Clear any existing interval first
+        if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        }
+        
+        // Set up polling interval (every 3 seconds instead of 1)
+        pollingIntervalRef.current = setInterval(() => {
+        if (gameSessionID) {
+            console.log('Polling for players...');
+            fetchPlayers(gameSessionID);
+            setLastPolled(new Date());
+        }
+        }, 1000); 
+    };
   
   // Stop player polling when component unmounts
   const stopPlayerPolling = () => {

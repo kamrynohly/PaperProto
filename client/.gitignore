@@ -45,3 +45,6 @@ next-env.d.ts
 
 ../proto/__pycache__/*
 ../server/__pycache__/*
+
+../proto/__pycache__/
+../server/__pycache__/

@@ -82,39 +82,38 @@ export const joinGameRoom = (gameSessionID, userID, username) => {
 };
 
 // Get Players (streaming response)
-export const getPlayers = (gameSessionID, userID, onPlayerReceived) => {
-  const request = new GetPlayersRequest();
+// Updated getPlayers function in grpcClient.js
+export const getPlayers = (gameSessionID, userID) => {
+    // Add validation
+    if (!gameSessionID) {
+      console.error('getPlayers called with empty gameSessionID');
+      throw new Error('Game session ID cannot be empty');
+    }
+    
+    if (!userID) {
+      console.error('getPlayers called with empty userID');
+      throw new Error('User ID cannot be empty');
+    }
   
-  try {
-    request.setGamesessionid(gameSessionID);
-    request.setUserid(userID);
-  } catch (e) {
-    console.error('Setting getPlayers properties failed:', e);
-    // Fall back to direct property assignment
-    request.gameSessionID = gameSessionID;
-    request.userID = userID;
-  }
-  
-  const stream = client.getPlayers(request, {});
-  
-  stream.on('data', (response) => {
-    onPlayerReceived({
-      username: response.getUsername(),
-      userID: response.getUserid()
-    });
-  });
-  
-  stream.on('error', (err) => {
-    console.error('Stream error:', err);
-  });
-  
-  stream.on('end', () => {
-    console.log('Stream ended');
-  });
-  
-  // Return the stream so caller can cancel if needed
-  return stream;
-};
+    const request = new GetPlayersRequest();
+    
+    try {
+      request.setGamesessionid(gameSessionID);
+      request.setUserid(userID);
+      
+      // Debug log
+      console.log('getPlayers request:', {
+        sessionID: request.getGamesessionid(),
+        userID: request.getUserid()
+      });
+    } catch (e) {
+      console.error('Setting getPlayers properties failed:', e);
+      throw e;
+    }
+    
+    console.log('Creating gRPC stream for players');
+    return client.getPlayers(request, {});
+  };
 
 // Subscribe to Game Updates (streaming response)
 export const subscribeToGameUpdates = (gameSessionID, userID, onGameUpdate) => {

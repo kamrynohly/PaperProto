@@ -54,8 +54,8 @@ export default function MultiplayerPage() {
       // Call the joinGameRoom gRPC function
       const result = await joinGameRoom(
         sessionCode, 
-        userData.userID, 
-        userData.username
+        currentUser.uid, 
+        currentUser.username
       );
       
       // TODO: handle status
@@ -81,7 +81,7 @@ export default function MultiplayerPage() {
     setIsLoading(true);
 
     const gameSessionID = uuidv4();
-    const userID = userData.userID;
+    const userID = currentUser.uid;
     const username = userData.username;
     
     try {

@@ -7,6 +7,7 @@ from collections import defaultdict
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from proto import service_pb2
 from proto import service_pb2_grpc
+import time
 
 
 # MARK: Initialize Logger
@@ -303,48 +304,77 @@ class PaperProtoServer(service_pb2_grpc.PaperProtoServerServicer):
 
     def GetPlayers(self, request, context):
         """
-        Handles a client's RPC request to get the list of players in a game session.
-
-        Parameters:
-            request (GetPlayersRequest): Contains the request details.
-                - gameSessionID (str): The ID of the game session.
-                - userID (str): The ID of the user making the request.
-            context (RPCContext): The RPC call context.
-
-        Yields (stream):
-            GetPlayersResponse: A stream of responses containing player usernames.
-                - username (str): The username of a player in the game.
+        Handles a client's RPC request to get and monitor players in a game session.
+        This is a streaming RPC that will stay open and send updates for new players.
         """
         try:
-            logger.info(f"Getting players for game session {request.gameSessionID}, requested by {request.userID}")
+            logger.info(f"Starting player monitoring for session {request.gameSessionID}, requested by {request.userID}")
             
             # Check if the game session exists
             if request.gameSessionID not in self.active_games:
                 logger.warning(f"Game session ID {request.gameSessionID} does not exist")
-                # In a streaming response, we don't have a clear way to report errors
-                # so we'll just return an empty stream
                 return
             
-            # Check if the requesting user is part of this game
+            # Create a unique key for this stream
+            stream_key = f"players_{request.userID}_{request.gameSessionID}"
+            self.player_streams[stream_key] = context
+            
+            # Send all current players initially
             game_data = self.active_games[request.gameSessionID]
-            logger.info(f"ACTIVE PLAYERS: {game_data["players"]}")
-            if request.userID not in game_data["players"]:
-                logger.warning(f"User {request.userID} is not part of game session {request.gameSessionID}")
-                # Again, for streaming, just return empty
-                return
+            known_players = set()
             
-            # Stream each player's username as a separate response
             for player_id, player_data in game_data["players"].items():
-                logger.info(f"Sending player info: {player_data['username']}")
+                known_players.add(player_id)
+                logger.info(f"Sending initial player info: {player_data['username']} ({player_id})")
+                
+                # Determine if this player is the creator/host
+                # is_creator = player_data.get('isHost', False)
+                
                 yield service_pb2.GetPlayersResponse(
                     username=player_data['username'],
-                    userID=player_id
+                    userID=player_id,
+                    # isCreator=is_creator
                 )
+            
+            # Keep the stream open and monitor for new players
+            while context.is_active():
+                # Check for new players every second
+                time.sleep(1)
                 
-        except Exception as e:
-            logger.error(f"Error getting players for game session {request.gameSessionID}: {e}")
-            # For streaming RPCs, exceptions can terminate the stream
+                # If game no longer exists, end the stream
+                if request.gameSessionID not in self.active_games:
+                    logger.info(f"Game session {request.gameSessionID} no longer exists, ending player stream")
+                    break
+                    
+                # Check for new players
+                current_players = set(self.active_games[request.gameSessionID]["players"].keys())
+                new_players = current_players - known_players
+                
+                # Send info for any new players
+                for player_id in new_players:
+                    player_data = self.active_games[request.gameSessionID]["players"][player_id]
+                    known_players.add(player_id)
+                    logger.info(f"Sending new player info: {player_data['username']} ({player_id})")
+                    
+                    # Determine if this player is the creator/host
+                    is_creator = player_data.get('isHost', False)
+                    
+                    yield service_pb2.GetPlayersResponse(
+                        username=player_data['username'],
+                        userID=player_id,
+                        isCreator=is_creator
+                    )
         
+        except Exception as e:
+            logger.error(f"Error in player monitoring stream: {e}")
+        
+        finally:
+            # Clean up when stream ends
+            stream_key = f"players_{request.userID}_{request.gameSessionID}"
+            if stream_key in self.player_streams:
+                logger.info(f"Player monitoring stream ended for user {request.userID} in session {request.gameSessionID}")
+                self.player_streams.pop(stream_key)
+            
         
     # MARK: Simple Heartbeat
     def Heartbeat(self, request, context):

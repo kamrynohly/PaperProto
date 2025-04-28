@@ -72,30 +72,37 @@ export const MultiplayerProvider = ({ children }) => {
     // Store reference in ref to avoid state updates
     playerStreamRef.current = stream;
     
-    // Listen for data events
-    stream.on('data', (player) => {
-      if (!player || !player.userID) return;
-      
-      // Only update state if this is a new player
-      if (!existingPlayerIdsRef.current.has(player.userID)) {
+    // In MultiplayerContext.js
+    stream.on('data', (response) => {
+        if (!response || !response.getUserid || !response.getUsername) return;
+        
+        const player = {
+        userID: response.getUserid(),
+        username: response.getUsername()
+        };
+        
+        if (!player.userID) return;
+        
+        console.log('Received player data:', player);
+        
+        // Only update state if this is a new player
+        if (!existingPlayerIdsRef.current.has(player.userID)) {
         existingPlayerIdsRef.current.add(player.userID);
         
         setPlayers(prevPlayers => {
-          // Double-check we don't already have this player (extra safety)
-          if (prevPlayers.some(p => p.userID === player.userID)) {
+            // Double-check we don't already have this player
+            if (prevPlayers.some(p => p.userID === player.userID)) {
             return prevPlayers;
-          }
-          return [...prevPlayers, player];
+            }
+            return [...prevPlayers, player];
         });
         
-        // We need to be careful about setting creator info to avoid re-renders
-        if (player.isCreator && !creatorID && player.userID) {
-          setCreatorID(player.userID);
-          if (typeof player.username === 'string') {
+        // Update creator info if needed
+        if (player.username === creatorUsername || (prevPlayers.length === 0 && !creatorID)) {
+            setCreatorID(player.userID);
             setCreatorUsername(player.username);
-          }
         }
-      }
+        }
     });
     
     // Handle errors
@@ -105,9 +112,16 @@ export const MultiplayerProvider = ({ children }) => {
     });
     
     // Handle stream end
+    // Handle stream end
     stream.on('end', () => {
-      console.log('Player monitoring stream ended');
-      // Maybe attempt to resubscribe after a delay
+        console.log('Player monitoring stream ended');
+        // Implement reconnection logic
+        setTimeout(() => {
+        if (gameSessionID) {
+            console.log('Attempting to reconnect player stream...');
+            fetchPlayers(gameSessionID);
+        }
+        }, 2000); // Wait 2 seconds before reconnecting
     });
   };
   
@@ -130,7 +144,7 @@ export const MultiplayerProvider = ({ children }) => {
   };
   
   // Function to join an existing game session
-  const joinGameSession = (sessionID) => {
+  const joinGameSession = (userID, username, sessionID) => {
     // Only update if the session ID is different
     if (gameSessionID === sessionID) return;
     
