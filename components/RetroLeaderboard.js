@@ -139,7 +139,7 @@ export default function RetroLeaderboard({ gameId }) {
                 <tr>
                   <td colSpan="4" className="py-6 text-center text-gray-400 text-xs"
                       style={{ fontFamily: '"Press Start 2P", cursive' }}>
-                    NO SCORES YET
+                    Sneak peek... exciting things to come!
                   </td>
                 </tr>
               )}

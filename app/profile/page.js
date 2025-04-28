@@ -390,7 +390,7 @@ function DashboardContent() {
   // Share handler
   const handleShare = (gameId) => {
     // Create the game URL
-    const gameUrl = `https://paper-proto-one.vercel.app/games/${gameId}`;
+    const gameUrl = `https://paper-proto.com/games/${gameId}`;
     
     // Copy to clipboard
     navigator.clipboard.writeText(gameUrl)

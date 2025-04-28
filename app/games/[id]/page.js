@@ -18,6 +18,8 @@ export default function GamePage({ params }) {
   const [loading, setLoading] = useState(true);
   const [userRating, setUserRating] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showCopyNotification, setShowCopyNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
 
   const { currentUser, userData } = useAuth();
 
@@ -280,6 +282,22 @@ export default function GamePage({ params }) {
     return plays.toString();
   };
 
+  // Share handler (copy from profile page)
+  const handleShare = (gameId) => {
+    const gameUrl = `https://paper-proto.com/games/${gameId}`;
+    navigator.clipboard.writeText(gameUrl)
+      .then(() => {
+        setNotificationMessage('Link copied to clipboard!');
+        setShowCopyNotification(true);
+        setTimeout(() => {
+          setShowCopyNotification(false);
+        }, 1000);
+      })
+      .catch(err => {
+        console.error('Failed to copy: ', err);
+      });
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-900 text-gray-100">
       {/* Header with retro styling */}
@@ -380,13 +398,13 @@ export default function GamePage({ params }) {
                 </div>
                   
                 <div className="flex space-x-4">
-                    <button className="px-4 py-2 bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors">
-                      Share Game
-                    </button>
-                    <button className="px-4 py-2 bg-gray-700 rounded-md hover:bg-gray-600 transition-colors">
-                      Report Issue
-                    </button>
-                  </div>
+                  <button
+                    className="px-4 py-2 bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors"
+                    onClick={() => handleShare(gameId)}
+                  >
+                    Share Game
+                  </button>
+                </div>
                 </div>
               </div>
               
@@ -411,6 +429,15 @@ export default function GamePage({ params }) {
         )}
       </main>
       {/* <BottomNavigation /> */}
+      {showCopyNotification && (
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-indigo-900 border-4 border-pink-500 text-white px-6 py-4 rounded-md shadow-[0px_0px_15px_5px_rgba(236,72,153,0.5)]">
+          <div className="text-center">
+            <p className="text-lg font-bold text-pink-400" style={{ fontFamily: '"Press Start 2P", cursive', fontSize: '14px' }}>
+              {notificationMessage || 'LINK COPIED!'}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
