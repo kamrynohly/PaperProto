@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNavigation from '../../components/BottomNavigation';
+import { heartbeat } from '../../utils/grpcClient';
 
 export default function MultiplayerPage() {
   const [sessionCode, setSessionCode] = useState('');
@@ -16,27 +17,21 @@ export default function MultiplayerPage() {
     checkServerStatus();
   }, []);
   
-  // Function to check server connection status
+  // Function to check server connection status using gRPC heartbeat
   const checkServerStatus = async () => {
     setServerStatus('checking');
     try {
-      // Replace with your actual server endpoint
-      const response = await fetch('/api/status', { 
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // Add a timeout to avoid hanging indefinitely
-        signal: AbortSignal.timeout(5000)
-      });
+      // Use the heartbeat function with requestorID=1 and serverID=1
+      const result = await heartbeat(1, 1);
       
-      if (response.ok) {
+      // Check status from the heartbeat response
+      if (result && result.status) {
         setServerStatus('online');
       } else {
         setServerStatus('offline');
       }
     } catch (error) {
-      console.error('Server connection error:', error);
+      console.error('Server heartbeat failed:', error);
       setServerStatus('offline');
     }
   };
@@ -81,9 +76,9 @@ export default function MultiplayerPage() {
   // Get status text
   const getStatusText = () => {
     switch (serverStatus) {
-      case 'online': return 'Server Online';
-      case 'offline': return 'Server Offline';
-      default: return 'Checking Server...';
+      case 'online': return 'gRPC Server Online';
+      case 'offline': return 'gRPC Server Offline';
+      default: return 'Checking gRPC Server...';
     }
   };
 

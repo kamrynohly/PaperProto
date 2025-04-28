@@ -42,3 +42,6 @@ next-env.d.ts
 
 ../node_modules/
 ../.next/
+
+../proto/__pycache__/*
+../server/__pycache__/*

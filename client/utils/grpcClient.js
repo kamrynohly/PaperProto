@@ -213,10 +213,14 @@ export const gameEnd = (gameSessionID, endState) => {
 export const heartbeat = (requestorID, serverID) => {
   return new Promise((resolve, reject) => {
     const request = new HeartbeatRequest();
+
+    console.log('Available methods on request:', Object.getOwnPropertyNames(
+      Object.getPrototypeOf(request)
+    ));
     
     try {
-      request.setRequestorid(requestorID);
-      request.setServerid(serverID);
+      request.setRequestorId(requestorID);
+      request.setServerId(serverID);
     } catch (e) {
       console.error('Setting heartbeat properties failed:', e);
       // Fall back to direct property assignment
@@ -232,7 +236,7 @@ export const heartbeat = (requestorID, serverID) => {
       }
       
       resolve({
-        responderID: response.getResponderid(),
+        responderID: response.getResponderId(),
         status: response.getStatus()
       });
     });
