@@ -146,7 +146,8 @@
 'use client';
 
 import { useState } from 'react';
-import { launchGameRoom } from '../../utils/grpcClient';
+import { launchGameRoom, joinGameRoom, getPlayers, subscribeToGameUpdates, sendGameUpdate, gameEnd, heartbeat } from '../../utils/grpcClient';
+
 
 export default function LaunchGameRoomComponent() {
   const [gameSessionID, setGameSessionID] = useState('');
