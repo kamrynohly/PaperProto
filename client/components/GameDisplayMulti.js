@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import DinoGame from './DinoGame';
 import { subscribeToGameUpdates, sendGameUpdate } from '../utils/grpcClient';
 import { useAuth } from '../contexts/AuthContext';
+import { useMultiplayer } from '../contexts/MultiplayerContext';
 
 export default function GameDisplayMulti({ gameCode, gameType, loading }) {
   const [gameTitle, setGameTitle] = useState('');
@@ -14,6 +15,7 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
   const iframeRef = useRef(null);
   const streamRef = useRef(null);
   const { currentUser, userData } = useAuth();
+  const { gameId, gameSessionID } = useMultiplayer();
 
   // Update display title when gameType changes
   useEffect(() => {
@@ -84,7 +86,7 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
       
       // Create the stream
       const stream = subscribeToGameUpdates({
-        gameSessionID: "hardcoded",
+        gameSessionID: gameSessionID,
         userID: userData.id
       });
       
