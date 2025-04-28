@@ -51,4 +51,4 @@ static_resources:
             address:
               socket_address:
                 address: 10.250.236.30
-                port_value: 5001  # Your Python gRPC server port
+                port_value: 5001  
