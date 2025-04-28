@@ -50,7 +50,5 @@ static_resources:
         - endpoint:
             address:
               socket_address:
-                # Point to your server at 127.0.0.1:5001
-                # docker needs the address to be that instead
-                address: 10.250.236.30
-                port_value: 5001
+                address: 10.250.224.122
+                port_value: 5001  # Your Python gRPC server port
