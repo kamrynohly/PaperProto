@@ -247,7 +247,15 @@ export default function CommunityPage() {
               const playerMode = getPlayerModeDisplay(game);
               
               return (
-                <Link key={game.id} href={`/games/${game.id}`}>
+                // <Link key={game.id} href={`/games/${game.id}`}>
+                // REPLACE TRUE WITH game.isMultiplayer
+                <Link 
+                  key={game.id} 
+                  href={true 
+                    ? { pathname: '/gameRoom', query: { gameId: game.id } }
+                    : `/games/${game.id}`
+                  }
+                >
                   <div className="bg-gray-800 rounded-lg overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-xl border-2 border-gray-700 hover:border-indigo-500 h-full flex flex-col">
                     <div className="relative h-48 w-full bg-gray-700">
                       {game.cover_image ? (
