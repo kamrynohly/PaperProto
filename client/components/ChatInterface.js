@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { sendMessageToClaude } from '../utils/claude-api';
 import { InitialSetupScript, ImprovementCycleScript } from '../Prompts';
 import NextImage from 'next/image';
+import GameModeModal from './GameModeModal';
 
 const initialMessages = [
   {
@@ -23,6 +24,9 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
   const [gameSteps, setGameSteps] = useState([]);
   const [uploadedImages, setUploadedImages] = useState([]);
   const [showImageUpload, setShowImageUpload] = useState(false);
+  const [showGameModeModal, setShowGameModeModal] = useState(false);
+  const [selectedGameMode, setSelectedGameMode] = useState(null);
+  const [pendingUserMessage, setPendingUserMessage] = useState(null);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -34,9 +38,9 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
   // Pass updated game code to parent when it changes
   useEffect(() => {
     if (currentGameType && currentGameCode) {
-      onGameRequest(currentGameType, currentGameCode);
+      onGameRequest(currentGameType, currentGameCode, selectedGameMode);
     }
-  }, [currentGameType, currentGameCode, onGameRequest]);
+  }, [currentGameType, currentGameCode, onGameRequest, selectedGameMode]);
 
   // Handle file selection with compression
   const handleFileSelect = (e) => {
@@ -110,10 +114,23 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
     setShowImageUpload(!showImageUpload);
   };
 
-  const processGameRequest = async (userMessage, imageUrls = []) => {
+  // Handle game mode selection
+  const handleGameModeSelect = (mode) => {
+    setSelectedGameMode(mode);
+    console.log(`Selected game mode: ${mode}`);
+    
+    // If we have a pending user message, process it now
+    if (pendingUserMessage) {
+      processMessageWithGameMode(pendingUserMessage.text, pendingUserMessage.images, mode);
+      setPendingUserMessage(null);
+    }
+  };
+
+  const processMessageWithGameMode = async (userMessage, imageUrls = [], gameMode) => {
     setLoading(true);
     console.log("Processing user message:", userMessage);
     console.log("With images:", imageUrls.length);
+    console.log("Game mode:", gameMode);
     
     // Debug image sizes if any
     if (imageUrls.length > 0) {
@@ -148,8 +165,8 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
     setUploadedImages([]);
   
     try {
-      // 2. Build system prompt based on current development step
-      const systemPrompt = buildSystemPrompt(messageText, developmentStep);
+      // 2. Build system prompt based on current development step and include game mode
+      const systemPrompt = buildSystemPrompt(messageText, developmentStep, gameMode);
   
       // 3. Send to Claude - include ALL text messages but optimize code messages
       // Create a copy of messages to modify for sending to Claude
@@ -191,8 +208,6 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
           content: message.content
         };
       });
-      
-      // We don't handle image messages here, that's now done on the server side
       
       const response = await sendMessageToClaude(messagesForClaude, systemPrompt);
       const claudeResponse = response.content[0].text;
@@ -276,17 +291,39 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
     }
   };
 
-  // Build system prompt based on current development state
-  const buildSystemPrompt = (userMessage, step) => {
-    // Initial setup - complete game implementation
-    if (step === 0) {
-      return InitialSetupScript;
+  const processGameRequest = async (userMessage, imageUrls = []) => {
+    // If this is the first game request (step 0) and we don't have a game mode yet,
+    // store the message and show the modal
+    if (developmentStep === 0 && !selectedGameMode) {
+      setPendingUserMessage({ text: userMessage, images: imageUrls });
+      setShowGameModeModal(true);
+      return;
     }
     
+    // Otherwise process the request with the existing game mode
+    await processMessageWithGameMode(userMessage, imageUrls, selectedGameMode);
+  };
+
+  // Build system prompt based on current development state and game mode
+  const buildSystemPrompt = (userMessage, step, gameMode) => {
+    let basePrompt;
+    
+    // Initial setup - complete game implementation
+    if (step === 0) {
+      basePrompt = InitialSetupScript;
+    }
     // Improvement cycle - refine based on user feedback
     else {
-      return ImprovementCycleScript;
+      basePrompt = ImprovementCycleScript;
     }
+    
+    // If gameMode is defined, append it to the system prompt
+    if (gameMode) {
+      // Add a section to the prompt that specifies the player mode
+      return basePrompt + `\n\nIMPORTANT: The user has specified this should be a ${gameMode === 'single' ? 'ONE-PLAYER' : 'TWO-PLAYER'} game. Make sure your implementation supports ${gameMode === 'single' ? 'a single player' : 'two players'}.`;
+    }
+    
+    return basePrompt;
   };
 
   // Handle form submission
@@ -440,6 +477,13 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
           </div>
         </form>
       </div>
+      
+      {/* Game Mode Modal */}
+      <GameModeModal 
+        isOpen={showGameModeModal} 
+        onClose={() => setShowGameModeModal(false)}
+        onSelectMode={handleGameModeSelect}
+      />
     </div>
   );
 }
