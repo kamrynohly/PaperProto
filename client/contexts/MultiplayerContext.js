@@ -144,7 +144,23 @@ export const MultiplayerProvider = ({ children }) => {
   };
   
   // Function to join an existing game session
-  const joinGameSession = (userID, username, sessionID) => {
+  // const joinGameSession = (sessionID, userID, username) => {
+  //   // Only update if the session ID is different
+  //   if (gameSessionID === sessionID) return;
+    
+  //   // Reset player tracking first
+  //   existingPlayerIdsRef.current = new Set();
+  //   setPlayers([]);
+    
+  //   // Set game session ID
+  //   setGameSessionID(sessionID);
+    
+  //   // Fetch players for this session
+  //   fetchPlayers(sessionID);
+  // };
+  
+  // Function to join an existing game session
+  const joinGameSession = (sessionID, userID, username) => {
     // Only update if the session ID is different
     if (gameSessionID === sessionID) return;
     
@@ -155,10 +171,19 @@ export const MultiplayerProvider = ({ children }) => {
     // Set game session ID
     setGameSessionID(sessionID);
     
+    // Add the joining player to the tracked players first
+    if (userID && username) {
+      existingPlayerIdsRef.current.add(userID);
+      setPlayers([{
+        userID,
+        username
+      }]);
+    }
+    
     // Fetch players for this session
     fetchPlayers(sessionID);
   };
-  
+
   // Function to clear game session
   const clearGameSession = () => {
     // Cancel player stream

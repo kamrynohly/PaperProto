@@ -61,7 +61,7 @@ export default function MultiplayerPage() {
       // TODO: handle status
       if (result) {
         // Set the game session in the multiplayer context
-        joinGameSession(sessionCode);
+        joinGameSession(sessionCode, currentUser.uid, currentUser.username);
         
         // Navigate to the waiting room
         router.push(`/waiting`);
