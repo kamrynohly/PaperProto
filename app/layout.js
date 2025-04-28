@@ -32,22 +32,6 @@ export const metadata = {
   },
 };
 
-// app/layout.js
-// export const metadata = {
-//   metadataBase: new URL('https://paper-proto.com'),
-//   title: 'PaperProto - From pen to play',
-//   description: 'Transform hand-drawn sketches into playable prototypes',
-//   openGraph: {
-//     // No need to specify images - Next.js will use app/opengraph-image.js
-//   },
-//   twitter: {
-//     card: 'summary_large_image',
-//     title: 'PaperProto - From pen to play!',
-//     description: 'Transform hand-drawn sketches into playable prototypes',
-//     // No need to specify images - Next.js will use the same image
-//   },
-// };
-
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
