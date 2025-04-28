@@ -15,7 +15,7 @@ export const metadata = {
     siteName: 'PaperProto',
     images: [
       {
-        url: 'https://www.paper-proto.com/opengraph-image', // Note: changed to .png extension
+        url: 'https://www.paper-proto.com/opengraph-image.png', // Note: changed to .png extension
         width: 1200,
         height: 630,
         alt: 'PaperProto - From pen to play!',
@@ -28,7 +28,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'PaperProto - From pen to play!',
     description: 'Transform hand-drawn sketches into playable prototypes',
-    images: ['/opengraph-image'], // Note: changed to .png extension
+    images: ['/opengraph-image.png'], // Note: changed to .png extension
   },
 };
 
