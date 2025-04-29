@@ -36,7 +36,10 @@ export default function GameDisplay({ gameCode, gameType, loading }) {
     setRenderError(null);
     
     // Don't try to render if we're still loading or don't have a game code
-    if (loading || !gameCode || !gameContainerRef.current) return;
+    if (loading || !gameCode || !gameContainerRef.current) {
+        console.log("maintaining loading state")
+        return
+    };
 
     try {
       console.log("Attempting to render game, code length:", gameCode.length);

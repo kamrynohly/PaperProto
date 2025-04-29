@@ -208,7 +208,6 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
                 window.callParentFunction = function(type, ...args) {
                   window.parent.postMessage({
                     type: type,
-                    arguments: args
                   }, '*');
                 };
 

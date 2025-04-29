@@ -72,6 +72,8 @@ export const joinGameRoom = (gameSessionID, userID, username) => {
         reject(err);
         return;
       }
+
+      console.log("joinGameRoom response:", response)
       
       resolve({
         status: response.getStatus(),

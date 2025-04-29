@@ -40,6 +40,10 @@ export const MultiplayerProvider = ({ children }) => {
       setIsHost(userData.userID === creatorID);
     }
   }, [userData, creatorID]);
+
+  useEffect(() => {
+    console.log("these are new players:", players)
+  }, [players])
   
   // Effect to clean up player stream on unmount
   useEffect(() => {
@@ -67,14 +71,12 @@ const fetchPlayers = async (sessionID) => {
     // Reset player tracking for fresh fetch
     existingPlayerIdsRef.current = new Set();
     
-// <<<<<<< Updated upstream
     // Create the stream
     const stream = getPlayers(sessionID, currentUser.uid);
     
     // Store reference in ref to avoid state updates
     playerStreamRef.current = stream;
     
-    // In MultiplayerContext.js
     stream.on('data', (response) => {
         if (!response || !response.getUserid || !response.getUsername) return;
         
@@ -89,21 +91,24 @@ const fetchPlayers = async (sessionID) => {
         
         // Only update state if this is a new player
         if (!existingPlayerIdsRef.current.has(player.userID)) {
+            console.log("adding player to existingPlayerIdsRef:", player.userID)
         existingPlayerIdsRef.current.add(player.userID);
         
         setPlayers(prevPlayers => {
             // Double-check we don't already have this player
-            if (prevPlayers.some(p => p.userID === player.userID)) {
-            return prevPlayers;
+            if (prevPlayers.some(p => p.userID == player.userID)) {
+                return prevPlayers;
             }
+            console.log("adding player to players:", player)
+            
+            // Update creator info if needed
+            if (player.username === creatorUsername || (prevPlayers.length === 0 && !creatorID)) {
+                setCreatorID(player.userID);
+                setCreatorUsername(player.username);
+            }
+            
             return [...prevPlayers, player];
         });
-        
-        // Update creator info if needed
-        if (player.username === creatorUsername || (prevPlayers.length === 0 && !creatorID)) {
-            setCreatorID(player.userID);
-            setCreatorUsername(player.username);
-        }
         }
     });
 
@@ -144,6 +149,7 @@ const fetchPlayers = async (sessionID) => {
     
     // Add host to tracked players
     existingPlayerIdsRef.current.add(hostID);
+    console.log("initialized game session, here are the players:", players)
   };
   
   
@@ -154,7 +160,7 @@ const fetchPlayers = async (sessionID) => {
         
         // Reset player tracking first
         existingPlayerIdsRef.current = new Set();
-        setPlayers([]);
+        // setPlayers([]);
         
         // Set game session ID
         setGameId(gameId);

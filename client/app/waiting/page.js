@@ -64,6 +64,7 @@ export default function WaitingRoomPage() {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
+      console.log("stopped polling: ", players)
     }
   };
   
@@ -117,18 +118,18 @@ export default function WaitingRoomPage() {
   }, [players.length, serverStatus, isRedirecting, gameSessionID, countdown]);
   
   // Countdown effect
-  useEffect(() => {
-    if (countdown !== null && countdown > 0) {
-      const timer = setTimeout(() => {
-        setCountdown(countdown - 1);
-      }, 1000);
+//   useEffect(() => {
+//     if (countdown !== null && countdown > 0) {
+//       const timer = setTimeout(() => {
+//         setCountdown(countdown - 1);
+//       }, 1000);
       
-      return () => clearTimeout(timer);
-    } else if (countdown === 0) {
-      // Redirect when countdown reaches 0
-      router.push(`/games/${gameId}`);
-    }
-  }, [countdown, router, gameId]);
+//       return () => clearTimeout(timer);
+//     } else if (countdown === 0) {
+//       // Redirect when countdown reaches 0
+//       router.push(`/games/${gameId}`);
+//     }
+//   }, [countdown, router, gameId]);
   
   // Function to copy game session ID to clipboard
   const copySessionCode = () => {
