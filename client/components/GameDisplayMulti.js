@@ -81,7 +81,7 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
             }
             break;
           case 'gameOver':
-            console.log('Game over. Final score:', event.data.update);
+            console.log('🥇 Game over. Add to score:', event.data.update);
             //todo: Implement leaderboard and replay button
             break;
         }

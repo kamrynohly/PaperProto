@@ -210,15 +210,15 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
       });
       
       const response = await sendMessageToClaude(messagesForClaude, systemPrompt);
-    //   const claudeResponse = response.content[0].text;
-    let claudeResponse = '';
-    // Find the content item with type 'text'
-    for (const item of response.content) {
-    if (item.type === 'text') {
-        claudeResponse = item.text;
-        break;
-    }
-    }
+      
+      let claudeResponse = '';
+      // Find the content item with type 'text'
+      for (const item of response.content) {
+        if (item.type === 'text') {
+          claudeResponse = item.text;
+          break;
+        }
+      }
       console.log("Claude response received, length:", claudeResponse.length);
   
       // 4. Extract conversation text by removing the marker blocks
@@ -249,10 +249,37 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
   
       // Extract code if present
       const codeMatch = claudeResponse.match(/---GAME_CODE_START---([\s\S]*?)---GAME_CODE_END---/);
+      console.log("Game code extracted:", codeMatch ? "yes" : "no", codeMatch ? codeMatch[1].length : 0);
+      
       if (codeMatch?.[1]) {
         // Only store the latest version of the code
         gameCode = codeMatch[1].trim();
         setCurrentGameCode(gameCode);
+        
+        // If we have a game type or this is initial setup, send immediately to parent
+        if (gameType || developmentStep === 0) {
+          if (!gameType) {
+            gameType = "New Game";
+            setCurrentGameType(gameType);
+          }
+          console.log("Game code and type found, sending to parent:", gameCode.length);
+          onGameRequest(gameType, gameCode, selectedGameMode);
+        }
+      } else if (!codeMatch && claudeResponse.length > 1000 && 
+                (claudeResponse.includes('<html>') || claudeResponse.includes('<!DOCTYPE'))) {
+        // This might be a complete game that wasn't properly marked with the tags
+        console.log("No game markers found, but response might contain HTML game code");
+        gameCode = claudeResponse;
+        setCurrentGameCode(gameCode);
+        
+        // Force game type if needed
+        if (!gameType) {
+          gameType = "Unknown Game";
+          setCurrentGameType(gameType);
+        }
+        
+        console.log("Attempting to render unmarked game code");
+        onGameRequest(gameType, gameCode, selectedGameMode);
       }
   
       // 6. Determine new development step
