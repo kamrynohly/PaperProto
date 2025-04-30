@@ -159,7 +159,7 @@ Your game MUST implement multiplayer functionality using these two functions:
         }
         else if (event.data && event.data.type === 'initGame') {
             console.log('SUBCLIENT Received initGame from parent:', event.data.update);
-            // Handle game start differently if you are player 1 or player 2
+            // Handle game start differently if you are player 1 or player 2. Player 1 should always start first. USE THIS FUNCTION TO FIGURE OUT WHO STARTS FIRST.
         }
     });
 
