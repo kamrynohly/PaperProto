@@ -199,7 +199,6 @@ class PaperProtoServer(service_pb2_grpc.PaperProtoServerServicer):
                 - gameState (str): The current state of the game.
         """
         try:
-            logger.info(f"REQUEST:  {request}")
             logger.info(f"Player {request.userID} subscribing to updates for game session {request.gameSessionID}")
             
             # Check if the game session exists
