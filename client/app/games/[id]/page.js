@@ -4,7 +4,7 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { doc, getDoc, updateDoc, arrayRemove, increment, arrayUnion, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayRemove, increment, arrayUnion, onSnapshot, collection, addDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import BottomNavigation from '../../../components/BottomNavigation';
 import GameDisplay from '../../../components/GameDisplay';
@@ -13,6 +13,7 @@ import RetroLeaderboard from '../../../components/RetroLeaderboard';
 import MultiplayerInfo from '../../../components/MultiplayerInfo';
 import { useMultiplayer } from '../../../contexts/MultiplayerContext';
 import GameDisplayMulti from '../../../components/GameDisplayMulti';
+
 export default function GamePage({ params }) {
   const router = useRouter();
   const gameId = use(params).id;
@@ -20,9 +21,10 @@ export default function GamePage({ params }) {
   const [loading, setLoading] = useState(true);
   const [userRating, setUserRating] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(Date.now());
+  const [lastScore, setLastScore] = useState(null);
 
   const { players } = useMultiplayer();
-
   const { currentUser, userData } = useAuth();
 
   // Initial data fetch
@@ -61,6 +63,51 @@ export default function GamePage({ params }) {
 
     fetchGame();
   }, [gameId]);
+
+  // Handle message from game iframe
+  useEffect(() => {
+    const handleGameMessage = async (event) => {
+      // Check if the message is from our game
+      if (event.data && event.data.type === 'gameOver' && event.data.score) {
+        console.log('Game over message received in parent:', event.data);
+        
+        // Save the score to Firebase
+        if (currentUser) {
+          try {
+            // Create new score entry
+            const newEntry = {
+              name: currentUser.displayName || 'Anonymous Player',
+              score: parseInt(event.data.score),
+              userId: currentUser.uid,
+              date: new Date().toISOString()
+            };
+            
+            // Add to Firebase
+            const leaderboardRef = collection(db, 'leaderboards', gameId, 'scores');
+            await addDoc(leaderboardRef, newEntry);
+            
+            // Set the last score for display
+            setLastScore(event.data.score);
+            
+            // Refresh the leaderboard
+            setLeaderboardRefreshKey(Date.now());
+            
+            console.log('Score saved to leaderboard');
+          } catch (error) {
+            console.error('Error saving score:', error);
+          }
+        }
+      }
+    };
+
+    // Add message event listener
+    window.addEventListener('message', handleGameMessage);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('message', handleGameMessage);
+    };
+  }, [currentUser, gameId]);
 
   // Real-time listener for favorites changes
   useEffect(() => {
@@ -350,15 +397,26 @@ export default function GamePage({ params }) {
                   <p className="text-gray-300">{game.description}</p>
                 </div>
 
-                {/* todo: Multiplayer */}
-                {/* display other player's name if it is multiplayer */}
+                {/* Multiplayer */}
                 <div className="mt-4 mb-6">
                     <MultiplayerInfo currentUserId={currentUser?.uid} />
                 </div>
                 
-                {/* Leaderboard */}
+                {/* Leaderboard - passing refreshKey to trigger updates */}
                 <div className="mt-4 mb-6">
-                  <RetroLeaderboard gameId={gameId} />
+                  {/* {lastScore && (
+                    <div className="mb-4 bg-indigo-900 bg-opacity-50 p-4 rounded-lg border-2 border-indigo-600 text-center">
+                      <p className="text-pink-400 text-lg font-bold mb-2"
+                         style={{ fontFamily: '"Press Start 2P", cursive' }}>
+                        LATEST SCORE: {lastScore}
+                      </p>
+                      <p className="text-indigo-300 text-sm"
+                         style={{ fontFamily: '"Press Start 2P", cursive' }}>
+                        Score saved to leaderboard!
+                      </p>
+                    </div>
+                  )} */}
+                  <RetroLeaderboard gameId={gameId} refreshKey={leaderboardRefreshKey} />
                 </div>
                 
                 <div className="mt-auto">
@@ -433,7 +491,6 @@ export default function GamePage({ params }) {
           </div>
         )}
       </main>
-      {/* <BottomNavigation /> */}
     </div>
   );
 }

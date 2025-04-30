@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import DinoGame from './DinoGame';
+import RetroLeaderboard from './RetroLeaderboard';
 import { subscribeToGameUpdates, sendGameUpdate } from '../utils/grpcClient';
 import { useAuth } from '../contexts/AuthContext';
 import { useMultiplayer } from '../contexts/MultiplayerContext';
@@ -11,6 +12,8 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
   const [gameTitle, setGameTitle] = useState('');
   const [gameMessages, setGameMessages] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  const [gameKey, setGameKey] = useState(Date.now()); // Key for forcing re-render
+  const [lastScore, setLastScore] = useState(null);
   const gameContainerRef = useRef(null);
   const iframeRef = useRef(null);
   const streamRef = useRef(null);
@@ -57,7 +60,7 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
             initGame();
         }
     }
-  }, [loaded, players, creatorID]);
+  }, [loaded, players, creatorID, currentUser]);
 
   // Setup message listener for communication from iframe
   useEffect(() => {
@@ -82,7 +85,69 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
             break;
           case 'gameOver':
             console.log('🥇 Game over. Add to score:', event.data.update);
-            //todo: Implement leaderboard and replay button
+            // Handle game over - save score to Firebase
+            if (event.data.update && !isNaN(parseInt(event.data.update))) {
+              // Save the score to Firebase via RetroLeaderboard component
+              setLastScore(parseInt(event.data.update));
+              
+              // Save score through Firebase directly - moved to the game page component
+              // This will let the parent (game page) know a score was recorded
+              if (window.parent) {
+                window.parent.postMessage({
+                  type: 'gameOver',
+                  score: parseInt(event.data.update)
+                }, '*');
+              }
+              
+              // Show the play again button overlay
+              const overlay = document.createElement('div');
+              overlay.id = 'game-over-overlay';
+              overlay.style.position = 'absolute';
+              overlay.style.top = '0';
+              overlay.style.left = '0';
+              overlay.style.width = '100%';
+              overlay.style.height = '100%';
+              overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+              overlay.style.display = 'flex';
+              overlay.style.flexDirection = 'column';
+              overlay.style.justifyContent = 'center';
+              overlay.style.alignItems = 'center';
+              overlay.style.zIndex = '1000';
+              
+              const scoreDisplay = document.createElement('div');
+              scoreDisplay.textContent = `SCORE: ${parseInt(event.data.update)}`;
+              scoreDisplay.style.fontFamily = '"Press Start 2P", cursive';
+              scoreDisplay.style.color = '#ec4899'; // Pink color
+              scoreDisplay.style.fontSize = '24px';
+              scoreDisplay.style.marginBottom = '20px';
+              
+              const playAgainBtn = document.createElement('button');
+              playAgainBtn.textContent = 'PLAY AGAIN';
+              playAgainBtn.style.padding = '10px 20px';
+              playAgainBtn.style.backgroundColor = '#7c3aed'; // Purple
+              playAgainBtn.style.color = 'white';
+              playAgainBtn.style.border = '2px solid #a78bfa';
+              playAgainBtn.style.borderRadius = '4px';
+              playAgainBtn.style.fontFamily = '"Press Start 2P", cursive';
+              playAgainBtn.style.cursor = 'pointer';
+              playAgainBtn.style.boxShadow = '0 4px 0 #4F46E5';
+              
+              playAgainBtn.onclick = () => {
+                // Remove overlay
+                gameContainerRef.current.removeChild(overlay);
+                
+                // Regenerate game by setting a new key
+                setGameKey(Date.now());
+              };
+              
+              overlay.appendChild(scoreDisplay);
+              overlay.appendChild(playAgainBtn);
+              
+              // Append to the game container
+              if (gameContainerRef.current) {
+                gameContainerRef.current.appendChild(overlay);
+              }
+            }
             break;
         }
       }
@@ -95,7 +160,13 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [userData]);
+  }, [currentUser, gameContainerRef]);
+
+  // Function to restart the game
+  const handleRestartGame = () => {
+    setGameKey(Date.now());
+    setLastScore(null);
+  };
 
   // Function to update game in the iframe
   const updateGame = (type, update) => {
@@ -125,10 +196,8 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
     }
   };
 
-  // Setup game update subscription
-  // Setup game update subscription
-// Setup game update subscription with auto-reconnect
-useEffect(() => {
+  // Setup game update subscription with auto-reconnect
+  useEffect(() => {
     if (!gameCode || !currentUser?.uid || !gameSessionID) return;
     
     let isActive = true;
@@ -223,6 +292,12 @@ useEffect(() => {
   // Render the generated game into an iframe
   useEffect(() => {
     if (!gameCode || !gameContainerRef.current) return;
+    
+    // Clear any previous overlay
+    const existingOverlay = document.getElementById('game-over-overlay');
+    if (existingOverlay && existingOverlay.parentNode) {
+      existingOverlay.parentNode.removeChild(existingOverlay);
+    }
 
     try {
       // Clear previous content
@@ -301,9 +376,10 @@ useEffect(() => {
                 };
 
                 // Define callParentFunction for iframe to call parent
-                window.callParentFunction = function(type, ...args) {
+                window.callParentFunction = function(type, data) {
                   window.parent.postMessage({
                     type: type,
+                    update: data
                   }, '*');
                 };
 
@@ -357,7 +433,7 @@ useEffect(() => {
         </div>
       `;
     }
-  }, [gameCode, gameTitle]);
+  }, [gameCode, gameTitle, gameKey]);
 
   return (
     <div className="flex flex-col h-full">
@@ -378,6 +454,7 @@ useEffect(() => {
               </div>
             )}
             <div
+              key={gameKey} // Add key for forced re-render
               ref={gameContainerRef}
               className={`w-full h-full flex items-center justify-center overflow-auto pixel-border rounded-lg bg-gray-800 crt-on transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-30'}`}
             />
