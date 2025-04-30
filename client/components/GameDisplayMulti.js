@@ -30,9 +30,10 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
 
   useEffect(() => {
     const initGame = () => {
-        console.log("initializing game: tell it if it is player 1 or player 2")
+        console.log("initializing game: assign player 1 or player 2")
+        
         let player = "you are player 1"
-        if (players[0].userID === creatorID) {
+        if (currentUser.uid === creatorID) {
           console.log("you are player 1")
         } else {
           console.log("you are player 2")
@@ -114,10 +115,7 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
       console.log("game session id:", gameSessionID)
       
       // Create the stream
-      const stream = subscribeToGameUpdates({
-        gameSessionID: gameSessionID,
-        userID: currentUser.uid
-      });
+      const stream = subscribeToGameUpdates(gameSessionID, currentUser.uid);
       
       // Store reference to the stream
       streamRef.current = stream;

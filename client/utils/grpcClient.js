@@ -58,6 +58,7 @@ export const joinGameRoom = (gameSessionID, userID, username) => {
       request.setGamesessionid(gameSessionID);
       request.setUserid(userID);
       request.setUsername(username);
+
     } catch (e) {
       console.error('Setting join properties failed:', e);
       // Fall back to direct property assignment
@@ -119,13 +120,19 @@ export const getPlayers = (gameSessionID, userID) => {
 
 // Subscribe to Game Updates (streaming response)
 export const subscribeToGameUpdates = (gameSessionID, userID, onGameUpdate) => {
-  console.log("PROTO CALL - subscribing to game updates:", gameSessionID, userID)
+  console.log("PROTO CALL - subscribing to game updates:", gameSessionID,  userID)
   const request = new SubscribeToGameUpdatesRequest();
   
   try {
     request.setGamesessionid(gameSessionID);
     request.setUserid(userID);
     console.log("you are sending this request:", request)
+
+    // Debug log
+    console.log('subscribeToGameUpdates request:', {
+        gameSessionID: request.getGamesessionid().gameSessionID,
+        userID: request.getGamesessionid().userID
+      });
   } catch (e) {
     console.error('Setting subscribeToGameUpdates properties failed:', e);
     // Fall back to direct property assignment
