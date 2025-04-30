@@ -77,7 +77,7 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
             console.log('2. Preparing to send local game state to other player:', event.data.update);
 
             try {
-              const response = await sendGameUpdate(currentUser.uid, String(event.data.update));
+              const response = await sendGameUpdate(currentUser.uid, String(event.data.update), gameSessionID);
               console.log('3. Game update response:', response);
             } catch (error) {
               console.error('3. Failed to send game update:', error);

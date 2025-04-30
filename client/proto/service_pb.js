@@ -1722,7 +1722,8 @@ proto.paperproto_server.SendGameUpdateRequest.prototype.toObject = function(opt_
 proto.paperproto_server.SendGameUpdateRequest.toObject = function(includeInstance, msg) {
   var f, obj = {
 fromplayerid: jspb.Message.getFieldWithDefault(msg, 1, ""),
-gamestate: jspb.Message.getFieldWithDefault(msg, 2, "")
+gamestate: jspb.Message.getFieldWithDefault(msg, 2, ""),
+gamesessionid: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -1767,6 +1768,10 @@ proto.paperproto_server.SendGameUpdateRequest.deserializeBinaryFromReader = func
       var value = /** @type {string} */ (reader.readString());
       msg.setGamestate(value);
       break;
+    case 3:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setGamesessionid(value);
+      break;
     default:
       reader.skipField();
       break;
@@ -1810,6 +1815,13 @@ proto.paperproto_server.SendGameUpdateRequest.serializeBinaryToWriter = function
       f
     );
   }
+  f = message.getGamesessionid();
+  if (f.length > 0) {
+    writer.writeString(
+      3,
+      f
+    );
+  }
 };
 
 
@@ -1846,6 +1858,24 @@ proto.paperproto_server.SendGameUpdateRequest.prototype.getGamestate = function(
  */
 proto.paperproto_server.SendGameUpdateRequest.prototype.setGamestate = function(value) {
   return jspb.Message.setProto3StringField(this, 2, value);
+};
+
+
+/**
+ * optional string gameSessionID = 3;
+ * @return {string}
+ */
+proto.paperproto_server.SendGameUpdateRequest.prototype.getGamesessionid = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.paperproto_server.SendGameUpdateRequest} returns this
+ */
+proto.paperproto_server.SendGameUpdateRequest.prototype.setGamesessionid = function(value) {
+  return jspb.Message.setProto3StringField(this, 3, value);
 };
 
 
