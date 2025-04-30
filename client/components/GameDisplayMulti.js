@@ -67,7 +67,7 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
             console.log('Game state updated:', event.data.update);
 
             try {
-              const response = await sendGameUpdate(userData.id, event.data.update);
+              const response = await sendGameUpdate(userData.id, str(event.data.update));
               console.log('Game update response:', response);
             } catch (error) {
               console.error('Failed to send game update:', error);
@@ -234,17 +234,6 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
                     type: type,
                   }, '*');
                 };
-
-                // Handle incoming messages from parent
-                window.addEventListener('message', (event) => {
-                  if (event.data && event.data.type === 'updateGameState') {
-                    console.log('Received update from parent:', event.data.update);
-                    // Game should implement handling for this
-                  }
-                    else if (event.data && event.data.type === 'initGame') {
-                      console.log('SUBCLIENT Received initGame from parent:', event.data.update);
-                    }
-                });
 
                 Promise.all(promises).finally(() => {
                   // Run any exposed game loops

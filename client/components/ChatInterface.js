@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { sendMessageToClaude } from '../utils/claude-api';
-import { InitialSetupScript, ImprovementCycleScript } from '../Prompts';
+import { InitialSetupScript, ImprovementCycleScript, InitialMultiSetupScript, ImprovementMultiCycleScript } from '../Prompts';
 import NextImage from 'next/image';
 import GameModeModal from './GameModeModal';
 
