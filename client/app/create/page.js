@@ -1,4 +1,3 @@
-// updated Home component with game mode support
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -36,18 +35,20 @@ export default function Home() {
     document.getElementById('game-container')?.classList.add('crt-on');
   }, []);
 
-  // Updated to accept game mode as a parameter
+  // Optimized to prevent unnecessary re-renders
   const handleGameGeneration = async (type, code, mode) => {
     setLoading(true);
     setError(null);
     try {
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      if (code) {
-        setGameType(type);
+      // Only update these if they've changed to prevent unnecessary re-renders
+      if (type !== gameType) setGameType(type);
+      if (mode !== gameMode) setGameMode(mode);
+      
+      // For the code, only update if content has changed
+      if (code && code !== gameCode) {
         setGameCode(code);
-        setGameMode(mode); // Store the game mode
-        console.log(`Received ${type} game code directly, length: ${code.length}, mode: ${mode}`);
-      } else {
+        console.log(`Received ${type} game code, length: ${code.length}, mode: ${mode}`);
+      } else if (!code) {
         console.warn("No game code provided");
       }
     } catch (error) {
