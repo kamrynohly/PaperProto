@@ -48,7 +48,9 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
       }
 
     if (loaded) {
-      initGame();
+        if (players.length > 1) {
+            initGame();
+        }
     }
   }, [loaded, players, creatorID]);
 
