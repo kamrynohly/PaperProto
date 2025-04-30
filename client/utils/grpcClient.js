@@ -165,18 +165,20 @@ export const subscribeToGameUpdates = (gameSessionID, userID, onGameUpdate) => {
 };
 
 // Send Game Update
-export const sendGameUpdate = (fromPlayerID, gameState) => {
+export const sendGameUpdate = (fromPlayerID, gameState, gameSessionID) => {
   return new Promise((resolve, reject) => {
     const request = new SendGameUpdateRequest();
     
     try {
       request.setFromplayerid(fromPlayerID);
       request.setGamestate(gameState);
+      request.setGamesessionid(gameSessionID);
     } catch (e) {
       console.error('Setting sendGameUpdate properties failed:', e);
       // Fall back to direct property assignment
       request.fromPlayerID = fromPlayerID;
       request.gameState = gameState;
+      request.gameSessionID = gameSessionID;
     }
     
     client.sendGameUpdate(request, {}, (err, response) => {

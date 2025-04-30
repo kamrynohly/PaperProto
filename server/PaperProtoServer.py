@@ -150,6 +150,8 @@ class PaperProtoServer(service_pb2_grpc.PaperProtoServerServicer):
     def JoinGameRoom(self, request, context):
         try:
             logger.info(f"Player {request.username} attempting to join game session {request.gameSessionID}")
+
+            logger.info(f"AHHHHHHH ACTIVE GAMES: {self.active_games}")
             
             # Check if the game session exists
             if request.gameSessionID not in self.active_games:
@@ -200,6 +202,7 @@ class PaperProtoServer(service_pb2_grpc.PaperProtoServerServicer):
         """
         try:
             logger.info(f"Player {request.userID} subscribing to updates for game session {request.gameSessionID}")
+            logger.info(f"BBBBBBBB ACTIVE GAMES: {self.active_games}")
             
             # Check if the game session exists
             if request.gameSessionID not in self.active_games:
@@ -241,13 +244,14 @@ class PaperProtoServer(service_pb2_grpc.PaperProtoServerServicer):
     def SendGameUpdate(self, request, context):
         try:
             logger.info(f"Received game update from player {request.fromPlayerID}")
+            logger.info(f"CCCCCCC ACTIVE GAMES: {self.active_games}")
             
             # Find which game session this player belongs to
-            player_game_session = None
-            for game_id, game_data in self.active_games.items():
-                if request.fromPlayerID in game_data["players"]:
-                    player_game_session = game_id
-                    break
+            player_game_session = request.gameSessionID
+            # for game_id, game_data in self.active_games.items():
+            #     if request.fromPlayerID in game_data["players"]:
+            #         player_game_session = game_id
+            #         break
             
             if player_game_session is None:
                 logger.warning(f"Player {request.fromPlayerID} is not in any active game session")
