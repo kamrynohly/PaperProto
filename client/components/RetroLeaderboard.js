@@ -1,6 +1,6 @@
 // components/RetroLeaderboard.js
 import { useState, useEffect } from 'react';
-import { collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, limit, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase'; // Make sure you have this import
 import { useAuth } from '../contexts/AuthContext'; // Import auth context
 
@@ -11,10 +11,46 @@ export default function RetroLeaderboard({ gameId, newScore = null, refreshKey }
   const [success, setSuccess] = useState(false);
   const { currentUser } = useAuth();
 
-  // Load leaderboard data from Firebase on component mount or when refreshKey changes
+  // Set up real-time listener for leaderboard updates
   useEffect(() => {
-    fetchLeaderboard();
-  }, [gameId, refreshKey]);
+    if (!gameId) return;
+    
+    setLoading(true);
+    
+    const leaderboardRef = collection(db, 'leaderboards', gameId, 'scores');
+    
+    // Create a proper query with explicit query() function
+    const leaderboardQuery = query(
+      leaderboardRef,
+      orderBy('score', 'desc'),
+      limit(3) // This ensures we only get top 3 documents
+    );
+    
+    // Set up real-time listener
+    const unsubscribe = onSnapshot(
+      leaderboardQuery, 
+      (querySnapshot) => {
+        const scores = [];
+        querySnapshot.forEach((doc) => {
+          scores.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+        
+        setLeaderboard(scores);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error listening to leaderboard changes:', error);
+        setError('Failed to get real-time updates');
+        setLoading(false);
+      }
+    );
+    
+    // Clean up listener when component unmounts or when gameId changes
+    return () => unsubscribe();
+  }, [gameId]);
 
   // Process new score when it's passed as prop
   useEffect(() => {
@@ -22,31 +58,6 @@ export default function RetroLeaderboard({ gameId, newScore = null, refreshKey }
       handleNewScore(newScore);
     }
   }, [newScore, currentUser]);
-
-  // Fetch leaderboard data from Firestore
-  const fetchLeaderboard = async () => {
-    setLoading(true);
-    try {
-      const leaderboardRef = collection(db, 'leaderboards', gameId, 'scores');
-      const q = query(leaderboardRef, orderBy('score', 'desc'), limit(3));
-      const querySnapshot = await getDocs(q);
-      
-      const scores = [];
-      querySnapshot.forEach((doc) => {
-        scores.push({
-          id: doc.id,
-          ...doc.data()
-        });
-      });
-      
-      setLeaderboard(scores);
-    } catch (err) {
-      console.error('Error loading leaderboard data:', err);
-      setError('Failed to load high scores');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Handle adding a new score
   const handleNewScore = async (score) => {
@@ -64,9 +75,6 @@ export default function RetroLeaderboard({ gameId, newScore = null, refreshKey }
       // Add to Firebase
       const leaderboardRef = collection(db, 'leaderboards', gameId, 'scores');
       await addDoc(leaderboardRef, newEntry);
-      
-      // Refresh leaderboard
-      await fetchLeaderboard();
       
       // Show success message
       setSuccess(true);

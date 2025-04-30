@@ -404,7 +404,7 @@ export default function GamePage({ params }) {
                 
                 {/* Leaderboard - passing refreshKey to trigger updates */}
                 <div className="mt-4 mb-6">
-                  {lastScore && (
+                  {/* {lastScore && (
                     <div className="mb-4 bg-indigo-900 bg-opacity-50 p-4 rounded-lg border-2 border-indigo-600 text-center">
                       <p className="text-pink-400 text-lg font-bold mb-2"
                          style={{ fontFamily: '"Press Start 2P", cursive' }}>
@@ -415,7 +415,7 @@ export default function GamePage({ params }) {
                         Score saved to leaderboard!
                       </p>
                     </div>
-                  )}
+                  )} */}
                   <RetroLeaderboard gameId={gameId} refreshKey={leaderboardRefreshKey} />
                 </div>
                 
