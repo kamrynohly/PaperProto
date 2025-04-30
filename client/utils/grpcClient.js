@@ -130,30 +130,26 @@ export const subscribeToGameUpdates = (gameSessionID, userID, onGameUpdate) => {
 
     // Debug log
     console.log('subscribeToGameUpdates request:', {
-        gameSessionID: request.getGamesessionid().gameSessionID,
-        userID: request.getGamesessionid().userID
+        gameSessionID: gameSessionID,
+        userID: userID
       });
+      
   } catch (e) {
     console.error('Setting subscribeToGameUpdates properties failed:', e);
     // Fall back to direct property assignment
     request.gameSessionID = gameSessionID;
     request.userID = userID;
   }
-  
-//   const stream = client.subscribeToGameUpdates({
-//     gameSessionID: gameSessionID,
-//     userID: currentUser.uid
-//   }, {});
 
   const stream = client.subscribeToGameUpdates(request, {});
   
   stream.on('data', (response) => {
 
-    console.log("🚀 Game update received:", response);
-    // onGameUpdate({
-    //   fromPlayerID: response.getFromplayerid(),
-    //   gameState: response.getGamestate()
-    // });
+    console.log("🚀 Game update to send to other player received:", response);
+    onGameUpdate({
+      fromPlayerID: response.getFromplayerid(),
+      gameState: response.getGamestate()
+    });
   });
   
   stream.on('error', (err) => {
@@ -233,9 +229,9 @@ export const heartbeat = (requestorID, serverID) => {
   return new Promise((resolve, reject) => {
     const request = new HeartbeatRequest();
 
-    console.log('Available methods on request:', Object.getOwnPropertyNames(
-      Object.getPrototypeOf(request)
-    ));
+    // console.log('Available methods on request:', Object.getOwnPropertyNames(
+    //   Object.getPrototypeOf(request)
+    // ));
     
     try {
       request.setRequestorId(requestorID);

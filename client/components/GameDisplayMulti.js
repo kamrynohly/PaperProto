@@ -45,7 +45,6 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
     
 
         if (iframeRef.current && iframeRef.current.contentWindow) {
-          console.log("AHHHHHHHHHHHHHH", player)
             iframeRef.current.contentWindow.postMessage({
               type: "initGame",
               update: player
@@ -63,7 +62,7 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
   // Setup message listener for communication from iframe
   useEffect(() => {
     const handleMessage = async (event) => {
-      console.log('Message received from game:', event.data);
+      console.log('1. Message received from this clients subclient game:', event.data);
       
       // Verify message format
       if (event.data && typeof event.data.type === 'string') {
@@ -72,14 +71,13 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
         
         switch(event.data.type) {
           case 'updateGameState':
-            console.log('Game state updated:', event.data.update);
+            console.log('2. Preparing to send local game state to other player:', event.data.update);
 
             try {
-                console.log("user data", userData)
               const response = await sendGameUpdate(currentUser.uid, String(event.data.update));
-              console.log('Game update response:', response);
+              console.log('3. Game update response:', response);
             } catch (error) {
-              console.error('Failed to send game update:', error);
+              console.error('3. Failed to send game update:', error);
             }
             break;
           case 'gameOver':
@@ -102,59 +100,125 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
   // Function to update game in the iframe
   const updateGame = (type, update) => {
     if (iframeRef.current && iframeRef.current.contentWindow) {
+      // Extract the game state from the gRPC response object
+      let gameState = update;
+      
+      // Check if it's a complex object with expected properties
+      if (update && typeof update !== 'string') {
+        // Try to use the protobuf getters first
+        if (typeof update.getGamestate === 'function') {
+          gameState = update.getGamestate();
+        }
+        // Fall back to accessing the u array if getters don't work
+        else if (update.u && Array.isArray(update.u) && update.u.length > 1) {
+          // The second element in the 'u' array contains our game state
+          gameState = update.u[1];
+        }
+      }
+      
+      console.log("Sending game state to iframe:", gameState);
+      
       iframeRef.current.contentWindow.postMessage({
         type: type,
-        update: update
+        update: gameState
       }, '*');
     }
   };
 
   // Setup game update subscription
-  useEffect(() => {
-    // Only subscribe if gameCode exists and we have userData
-    if (!gameCode) return;
+  // Setup game update subscription
+// Setup game update subscription with auto-reconnect
+useEffect(() => {
+    if (!gameCode || !currentUser?.uid || !gameSessionID) return;
     
-    try {
+    let isActive = true;
+    let reconnectTimer = null;
+    
+    const setupStream = () => {
       console.log('Setting up game update subscription');
-      console.log("current user:", currentUser.uid)
-      console.log("game session id:", gameSessionID)
       
-      // Create the stream
-      const stream = subscribeToGameUpdates(gameSessionID, currentUser.uid);
+      // Cancel any existing subscription
+      if (streamRef.current) {
+        streamRef.current.cancel();
+        streamRef.current = null;
+      }
       
-      // Store reference to the stream
-      streamRef.current = stream;
-      
-      // Listen for data events
-      stream.on('data', (update) => {
-        console.log('Received game update:', update);
-        updateGame("updateGameState", update);
-      });
-      
-      // Handle errors
-      stream.on('error', (error) => {
-        console.error('Game update stream error:', error);
-        // Implement reconnection logic if needed
-      });
-      
-      // Handle stream end
-      stream.on('end', () => {
-        console.log('Game update stream ended');
-        // Maybe attempt to resubscribe after a delay
-      });
-    } catch (error) {
-      console.error('Failed to setup game update subscription:', error);
-    }
+      try {
+        // Create the stream with a callback function
+        const stream = subscribeToGameUpdates(
+          gameSessionID, 
+          currentUser.uid,
+          (update) => {
+            console.log('Received update from other player:', update);
+            if (update.fromPlayerID !== currentUser.uid) {
+              console.log('Forwarding update from player:', update.fromPlayerID);
+              updateGame("updateGameState", update.gameState);
+            }
+          }
+        );
+        
+        // Store reference to the stream
+        streamRef.current = stream;
+        
+        // Handle stream ending and errors
+        const handleDisconnect = (reason) => {
+          console.log(`Stream disconnected: ${reason}`);
+          
+          // Clear any pending reconnect
+          if (reconnectTimer) {
+            clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+          }
+          
+          // Schedule reconnection if component is still mounted
+          if (isActive) {
+            console.log('Scheduling reconnection...');
+            reconnectTimer = setTimeout(() => {
+              console.log('Attempting to reconnect...');
+              setupStream();
+            }, 1000); // Reconnect after 1 second
+          }
+        };
+        
+        stream.on('error', (error) => {
+          console.error('Game update stream error:', error);
+          handleDisconnect('error');
+        });
+        
+        stream.on('end', () => {
+          console.log('Game update stream ended normally');
+          handleDisconnect('end');
+        });
+        
+      } catch (error) {
+        console.error('Failed to setup game update subscription:', error);
+        
+        // Schedule retry
+        if (isActive && !reconnectTimer) {
+          reconnectTimer = setTimeout(setupStream, 2000);
+        }
+      }
+    };
     
-    // Clean up when component unmounts or gameCode changes
+    // Initial setup
+    setupStream();
+    
+    // Cleanup
     return () => {
+      isActive = false;
+      
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      
       if (streamRef.current) {
         console.log('Cancelling game update subscription');
         streamRef.current.cancel();
         streamRef.current = null;
       }
     };
-  }, [gameCode, userData]);
+  }, [gameCode, currentUser?.uid, gameSessionID]);
 
   // Render the generated game into an iframe
   useEffect(() => {

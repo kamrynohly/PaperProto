@@ -208,21 +208,25 @@ class PaperProtoServer(service_pb2_grpc.PaperProtoServerServicer):
             
             # Create a unique key for this player's stream
             stream_key = f"{request.userID}_{request.gameSessionID}"
+            queue_key = f"updates_{request.userID}_{request.gameSessionID}"
             
             # Store the stream context
             self.player_streams[stream_key] = context
             
-            # Process any pending updates for this game
-            while True:
+            # Process updates for this specific player
+            while context.is_active():
                 # If we have updates ready to send, yield them to the stream
-                if len(self.update_queue[request.gameSessionID]) > 0 and context.is_active():
-                    update = self.update_queue[request.gameSessionID].pop(0)
+                if queue_key in self.update_queue and len(self.update_queue[queue_key]) > 0:
+                    update = self.update_queue[queue_key].pop(0)
                     logger.info(f"Sending game update to player {request.userID} in session {request.gameSessionID}")
                     yield service_pb2.SubscribeToGameUpdatesResponse(
                         fromPlayerID=update["fromPlayerID"],
                         gameState=update["gameState"]
                     )
-                
+                else:
+                    # Sleep briefly to avoid busy-waiting
+                    time.sleep(0.1)
+        
         except Exception as e:
             logger.error(f"Error in game update subscription: {e}")
         
@@ -232,22 +236,9 @@ class PaperProtoServer(service_pb2_grpc.PaperProtoServerServicer):
             if stream_key in self.player_streams:
                 logger.info(f"Player {request.userID} disconnected from game session {request.gameSessionID}")
                 self.player_streams.pop(stream_key)
-
+    
+  
     def SendGameUpdate(self, request, context):
-        """
-        Handles a client's RPC request to send a game update.
-
-        Parameters:
-            request (SendGameUpdateRequest): Contains update details.
-                - fromPlayerID (str): ID of the player sending the update.
-                - gameState (str): The new state of the game.
-            context (RPCContext): The RPC call context.
-
-        Returns:
-            SendGameUpdateResponse: A response indicating the status of the update.
-                - status (SendGameUpdateStatus): SUCCESS or FAILURE.
-                - message (str): Description of the result.
-        """
         try:
             logger.info(f"Received game update from player {request.fromPlayerID}")
             
@@ -268,12 +259,25 @@ class PaperProtoServer(service_pb2_grpc.PaperProtoServerServicer):
             # Update the game state
             self.active_games[player_game_session]["gameState"] = request.gameState
             
-            # Queue the update for all players in this game
+            # Create the update object
             update = {
                 "fromPlayerID": request.fromPlayerID,
                 "gameState": request.gameState
             }
-            self.update_queue[player_game_session].append(update)
+            
+            # Send update to all *other* players in this game session
+            for player_id in self.active_games[player_game_session]["players"]:
+                # Skip the player who sent the update
+                if player_id == request.fromPlayerID:
+                    continue
+                    
+                logger.info(f"Sending game update to player {player_id} in session {player_game_session}")
+                
+                # Queue this update for the specific player
+                player_queue_key = f"updates_{player_id}_{player_game_session}"
+                if player_queue_key not in self.update_queue:
+                    self.update_queue[player_queue_key] = []
+                self.update_queue[player_queue_key].append(update)
             
             return service_pb2.SendGameUpdateResponse(
                 status=service_pb2.SendGameUpdateResponse.SendGameUpdateStatus.SUCCESS,

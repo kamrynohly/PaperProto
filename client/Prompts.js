@@ -233,11 +233,11 @@ Your game MUST implement multiplayer functionality using these two functions:
     window.addEventListener('message', (event) => {
         if (event.data && event.data.type === 'updateGameState') {
         console.log('Received update from parent:', event.data.update);
-        // Game should implement handling for this
+        // You should implement code for handling for this, where event.data.update is a string type. 
         }
         else if (event.data && event.data.type === 'initGame') {
             console.log('SUBCLIENT Received initGame from parent:', event.data.update);
-            // Handle game start differently if you are player 1 or player 2. Player 1 should always start first. USE THIS FUNCTION TO FIGURE OUT WHO STARTS FIRST. This is the only way you should know whos turn it is. player 1 should start first always. 
+            // You should implement code for handling for this, where event.data.update is string "1" or "2". "1" should always start the game first. USE THIS FUNCTION TO FIGURE OUT WHO STARTS FIRST. This is the only way you should know whos turn it is at the beginning of the game. player 1 should start first always. 
         }
     });
     DO NOT UNDER ANY CIRCUMSTANCES RANDOMLY ASSIGN THE PLAYER ORDER.
