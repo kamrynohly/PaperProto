@@ -18,7 +18,7 @@ export default function MultiplayerPage() {
   const gameId = searchParams.get('gameId');
 
   const { currentUser, userData } = useAuth();
-  const { initializeGameSession, joinGameSession } = useMultiplayer();
+  const { initializeGameSession, joinGameSession, clearGameSession } = useMultiplayer();
 
   // Check server connection on component mount
   useEffect(() => {
@@ -27,8 +27,10 @@ export default function MultiplayerPage() {
 
   useEffect(() => {
     clearGameSession();
+    console.log("cleared game session")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  
+
   // Function to check server connection status using gRPC heartbeat
   const checkServerStatus = async () => {
     setServerStatus('checking');
