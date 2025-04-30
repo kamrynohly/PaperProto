@@ -10,9 +10,8 @@ import BottomNavigation from '../../../components/BottomNavigation';
 import GameDisplay from '../../../components/GameDisplay';
 import { useAuth } from '../../../contexts/AuthContext';
 import RetroLeaderboard from '../../../components/RetroLeaderboard';
-import { MultiplayerProvider } from '../../../contexts/MultiplayerContext';
 import MultiplayerInfo from '../../../components/MultiplayerInfo';
-
+import { useMultiplayer } from '../../../contexts/MultiplayerContext';
 export default function GamePage({ params }) {
   const router = useRouter();
   const gameId = use(params).id;
@@ -20,6 +19,8 @@ export default function GamePage({ params }) {
   const [loading, setLoading] = useState(true);
   const [userRating, setUserRating] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+
+  const { players } = useMultiplayer();
 
   const { currentUser, userData } = useAuth();
 
@@ -282,8 +283,10 @@ export default function GamePage({ params }) {
     return plays.toString();
   };
 
+  console.log("players in game page:", players)
+
   return (
-    <MultiplayerProvider>
+        
     <div className="flex flex-col min-h-screen bg-gray-900 text-gray-100">
       {/* Header with retro styling */}
       <header className="bg-indigo-900 border-b-4 border-pink-500 shadow-lg">
@@ -352,9 +355,9 @@ export default function GamePage({ params }) {
                 </div>
                 
                 {/* Leaderboard */}
-                {/* <div className="mt-4 mb-6">
+                <div className="mt-4 mb-6">
                   <RetroLeaderboard gameId={gameId} />
-                </div> */}
+                </div>
                 
                 <div className="mt-auto">
                   <div className="mb-6">
@@ -422,6 +425,5 @@ export default function GamePage({ params }) {
       </main>
       {/* <BottomNavigation /> */}
     </div>
-    </MultiplayerProvider>
   );
 }
