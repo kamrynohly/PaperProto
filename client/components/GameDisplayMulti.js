@@ -40,7 +40,9 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
           player = "you are player 2"
         }
     
+
         if (iframeRef.current && iframeRef.current.contentWindow) {
+          console.log("AHHHHHHHHHHHHHH", player)
             iframeRef.current.contentWindow.postMessage({
               type: "initGame",
               update: player
