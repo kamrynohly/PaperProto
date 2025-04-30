@@ -24,6 +24,10 @@ export default function MultiplayerPage() {
   useEffect(() => {
     checkServerStatus();
   }, []);
+
+  useEffect(() => {
+    clearGameSession();
+  }, []);
   
   // Function to check server connection status using gRPC heartbeat
   const checkServerStatus = async () => {

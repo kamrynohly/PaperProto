@@ -69,7 +69,7 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
             console.log('Game state updated:', event.data.update);
 
             try {
-              const response = await sendGameUpdate(userData.id, str(event.data.update));
+              const response = await sendGameUpdate(userData.id, String(event.data.update));
               console.log('Game update response:', response);
             } catch (error) {
               console.error('Failed to send game update:', error);
