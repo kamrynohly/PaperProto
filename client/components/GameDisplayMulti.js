@@ -15,7 +15,7 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
   const iframeRef = useRef(null);
   const streamRef = useRef(null);
   const { currentUser, userData } = useAuth();
-  const { gameId, gameSessionID } = useMultiplayer();
+  const { gameId, gameSessionID, players, creatorID, creatorUsername } = useMultiplayer();
 
   // Update display title when gameType changes
   useEffect(() => {
@@ -27,6 +27,30 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
       setGameTitle(formattedType);
     }
   }, [gameType]);
+
+  useEffect(() => {
+    const initGame = () => {
+        console.log("initializing game: tell it if it is player 1 or player 2")
+        let player = "you are player 1"
+        if (players[0].userID === creatorID) {
+          console.log("you are player 1")
+        } else {
+          console.log("you are player 2")
+          player = "you are player 2"
+        }
+    
+        if (iframeRef.current && iframeRef.current.contentWindow) {
+            iframeRef.current.contentWindow.postMessage({
+              type: "initGame",
+              player: player
+            }, '*');
+          }
+      }
+
+    if (loaded) {
+      initGame();
+    }
+  }, [loaded, players, creatorID]);
 
   // Setup message listener for communication from iframe
   useEffect(() => {

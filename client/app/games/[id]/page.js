@@ -12,6 +12,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import RetroLeaderboard from '../../../components/RetroLeaderboard';
 import MultiplayerInfo from '../../../components/MultiplayerInfo';
 import { useMultiplayer } from '../../../contexts/MultiplayerContext';
+import GameDisplayMulti from '../../../components/GameDisplayMulti';
 export default function GamePage({ params }) {
   const router = useRouter();
   const gameId = use(params).id;
@@ -39,6 +40,7 @@ export default function GamePage({ params }) {
           };
           
           setGame(gameData);
+          console.log("game data:", gameData)
 
           // Add a view count
           const currentPlays = gameData.playCount || 0;
@@ -405,11 +407,19 @@ export default function GamePage({ params }) {
               
               {/* Right side - Game canvas */}
               <div className="flex-4">
-                <GameDisplay 
-                  gameCode={game.gameCode} 
-                  gameType={game.title} 
-                  loading={loading} 
-                />
+                {game.gameMode === "multi" ? (
+                  <GameDisplayMulti
+                    gameCode={game.gameCode} 
+                    gameType={game.title} 
+                    loading={loading} 
+                  />
+                ) : (
+                  <GameDisplay 
+                    gameCode={game.gameCode} 
+                    gameType={game.title} 
+                    loading={loading} 
+                  />
+                )}
               </div>
               
             </div>

@@ -9,9 +9,9 @@ export default function MultiplayerInfo({ currentUserId }) {
   // Filter out the current player
   const otherPlayers = players.filter(player => player.userID !== currentUserId);
   
-//   if (!gameSessionID || otherPlayers.length === 0) {
-//     return null;
-//   }
+  if (!gameSessionID || otherPlayers.length === 0) {
+    return null;
+  }
 
     console.log("players found in token:", players)
   
