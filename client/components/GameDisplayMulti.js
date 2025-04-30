@@ -42,7 +42,7 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
         if (iframeRef.current && iframeRef.current.contentWindow) {
             iframeRef.current.contentWindow.postMessage({
               type: "initGame",
-              player: player
+              update: player
             }, '*');
           }
       }
@@ -241,6 +241,9 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
                     console.log('Received update from parent:', event.data.update);
                     // Game should implement handling for this
                   }
+                    else if (event.data && event.data.type === 'initGame') {
+                      console.log('SUBCLIENT Received initGame from parent:', event.data.update);
+                    }
                 });
 
                 Promise.all(promises).finally(() => {
