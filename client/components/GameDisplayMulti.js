@@ -14,11 +14,25 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
   const [loaded, setLoaded] = useState(false);
   const [gameKey, setGameKey] = useState(Date.now()); // Key for forcing re-render
   const [lastScore, setLastScore] = useState(null);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const gameContainerRef = useRef(null);
   const iframeRef = useRef(null);
   const streamRef = useRef(null);
+  const loadTimeoutRef = useRef(null);
   const { currentUser, userData } = useAuth();
   const { gameId, gameSessionID, players, creatorID, creatorUsername } = useMultiplayer();
+
+  // Log multiplayer context for debugging
+  useEffect(() => {
+    console.log("Multiplayer context:", { 
+      gameId, 
+      gameSessionID, 
+      playersCount: players?.length, 
+      creatorID,
+      isFirstLoad
+    });
+  }, [gameId, gameSessionID, players, creatorID, isFirstLoad]);
 
   // Update display title when gameType changes
   useEffect(() => {
@@ -31,36 +45,74 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
     }
   }, [gameType]);
 
+  // Setup game initialization with retry mechanism
   useEffect(() => {
+    let initTimer = null;
+    
     const initGame = () => {
-        console.log("initializing game: assign player 1 or player 2")
-        console.log("current user:", currentUser.uid)
-        console.log("creator id:", creatorID)
-        
-        let player;
-        if (currentUser.uid === creatorID) {
+      if (!iframeRef.current || !iframeRef.current.contentWindow) {
+        console.log("iframe not ready yet, delaying initialization");
+        return;
+      }
+      
+      console.log("initializing game: assign player 1 or player 2");
+      console.log("current user:", currentUser?.uid);
+      console.log("creator id:", creatorID);
+      
+      let player;
+      if (currentUser?.uid === creatorID) {
         player = "you are player 1";
         console.log("you are player 1");
-        } else {
+      } else {
         player = "you are player 2";
         console.log("you are player 2");
-        }
-    
+      }
+      
+      try {
+        iframeRef.current.contentWindow.postMessage({
+          type: "initGame",
+          update: player
+        }, '*');
+        console.log("Game initialization message sent");
+      } catch (err) {
+        console.error("Error sending init message to iframe:", err);
+      }
+    };
 
+    // Initialize the game when loaded and multiplayer context is available
+    if (loaded) {
+      // For the first load or when players aren't available yet, default to player 1
+      if (isFirstLoad || !players || players.length <= 1) {
+        console.log("First load or players not available yet, defaulting to player 1");
         if (iframeRef.current && iframeRef.current.contentWindow) {
+          try {
             iframeRef.current.contentWindow.postMessage({
               type: "initGame",
-              update: player
+              update: "you are player 1"
             }, '*');
+            console.log("Default player 1 initialization sent");
+            
+            // Mark that we've initialized this game
+            setIsFirstLoad(false);
+          } catch (err) {
+            console.error("Error sending default init message:", err);
           }
-      }
-
-    if (loaded) {
-        if (players.length > 1) {
-            initGame();
         }
+      } 
+      // If we have proper multiplayer context with multiple players
+      else if (players.length > 1) {
+        // Clear any existing init timer
+        if (initTimer) clearTimeout(initTimer);
+        
+        // Add a small delay to ensure iframe is fully loaded
+        initTimer = setTimeout(initGame, 500);
+      }
     }
-  }, [loaded, players, creatorID, currentUser]);
+
+    return () => {
+      if (initTimer) clearTimeout(initTimer);
+    };
+  }, [loaded, players, creatorID, currentUser, isFirstLoad]);
 
   // Setup message listener for communication from iframe
   useEffect(() => {
@@ -77,7 +129,17 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
             console.log('2. Preparing to send local game state to other player:', event.data.update);
 
             try {
-              const response = await sendGameUpdate(currentUser.uid, String(event.data.update), gameSessionID);
+              if (!currentUser?.uid) {
+                console.error('Cannot send game update: currentUser.uid is undefined');
+                return;
+              }
+              
+              if (!gameSessionID) {
+                console.error('Cannot send game update: gameSessionID is undefined');
+                return;
+              }
+              
+              const response = await sendGameUpdate(currentUser.uid, String(event.data.update));
               console.log('3. Game update response:', response);
             } catch (error) {
               console.error('3. Failed to send game update:', error);
@@ -134,7 +196,9 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
               
               playAgainBtn.onclick = () => {
                 // Remove overlay
-                gameContainerRef.current.removeChild(overlay);
+                if (gameContainerRef.current && gameContainerRef.current.contains(overlay)) {
+                  gameContainerRef.current.removeChild(overlay);
+                }
                 
                 // Regenerate game by setting a new key
                 setGameKey(Date.now());
@@ -149,6 +213,20 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
               }
             }
             break;
+          case 'ready':
+            console.log('Game is ready:', event.data.update);
+            break;
+          case 'loaded':
+            console.log('Game is loaded');
+            setLoaded(true);
+            // Clear any pending force-load timeout
+            if (loadTimeoutRef.current) {
+              clearTimeout(loadTimeoutRef.current);
+            }
+            break;
+          case 'error':
+            console.error('Game error:', event.data.update);
+            break;
         }
       }
     };
@@ -160,48 +238,79 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [currentUser, gameContainerRef]);
+  }, [currentUser, gameContainerRef, gameSessionID]);
 
   // Function to restart the game
   const handleRestartGame = () => {
     setGameKey(Date.now());
     setLastScore(null);
+    setLoaded(false); // Reset loaded state to trigger loading indicator
+    setIsFirstLoad(true); // Reset first load flag to re-initialize
+  };
+
+  // Function to manually force loaded state
+  const forceLoadedState = () => {
+    setLoaded(true);
+    console.log("Forced loaded state to true");
   };
 
   // Function to update game in the iframe
   const updateGame = (type, update) => {
-    if (iframeRef.current && iframeRef.current.contentWindow) {
-      // Extract the game state from the gRPC response object
-      let gameState = update;
-      
-      // Check if it's a complex object with expected properties
-      if (update && typeof update !== 'string') {
-        // Try to use the protobuf getters first
-        if (typeof update.getGamestate === 'function') {
-          gameState = update.getGamestate();
-        }
-        // Fall back to accessing the u array if getters don't work
-        else if (update.u && Array.isArray(update.u) && update.u.length > 1) {
-          // The second element in the 'u' array contains our game state
-          gameState = update.u[1];
-        }
+    if (!iframeRef.current || !iframeRef.current.contentWindow) {
+      console.error("Cannot update game: iframe not ready");
+      return;
+    }
+    
+    // Extract the game state from the gRPC response object
+    let gameState = update;
+    
+    // Check if it's a complex object with expected properties
+    if (update && typeof update !== 'string') {
+      // Try to use the protobuf getters first
+      if (typeof update.getGamestate === 'function') {
+        gameState = update.getGamestate();
       }
-      
-      console.log("Sending game state to iframe:", gameState);
-      
+      // Fall back to accessing the u array if getters don't work
+      else if (update.u && Array.isArray(update.u) && update.u.length > 1) {
+        // The second element in the 'u' array contains our game state
+        gameState = update.u[1];
+      }
+    }
+    
+    console.log("Sending game state to iframe:", gameState);
+    
+    try {
       iframeRef.current.contentWindow.postMessage({
         type: type,
         update: gameState
       }, '*');
+    } catch (err) {
+      console.error("Error sending update to iframe:", err);
     }
   };
 
-  // Setup game update subscription with auto-reconnect
+  // Setup game update subscription with auto-reconnect and limits
   useEffect(() => {
-    if (!gameCode || !currentUser?.uid || !gameSessionID) return;
+    // Skip if we're missing any required data
+    if (!gameCode) {
+      console.log("Missing gameCode, skipping subscription setup");
+      return;
+    }
+    
+    if (!currentUser?.uid) {
+      console.log("Missing currentUser.uid, skipping subscription setup");
+      return;
+    }
+    
+    if (!gameSessionID) {
+      console.log("Missing gameSessionID, skipping subscription setup");
+      return;
+    }
     
     let isActive = true;
     let reconnectTimer = null;
+    let reconnectCount = 0;
+    const MAX_RECONNECT_ATTEMPTS = 5;
     
     const setupStream = () => {
       console.log('Setting up game update subscription');
@@ -219,12 +328,15 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
           currentUser.uid,
           (update) => {
             console.log('Received update from other player:', update);
-            if (update.fromPlayerID !== currentUser.uid) {
+            if (update && update.fromPlayerID !== currentUser.uid) {
               console.log('Forwarding update from player:', update.fromPlayerID);
               updateGame("updateGameState", update.gameState);
             }
           }
         );
+        
+        // Reset reconnect counter on successful connection
+        reconnectCount = 0;
         
         // Store reference to the stream
         streamRef.current = stream;
@@ -239,13 +351,21 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
             reconnectTimer = null;
           }
           
-          // Schedule reconnection if component is still mounted
-          if (isActive) {
-            console.log('Scheduling reconnection...');
+          // Schedule reconnection if component is still mounted and we haven't exceeded max attempts
+          if (isActive && reconnectCount < MAX_RECONNECT_ATTEMPTS) {
+            console.log(`Scheduling reconnection (attempt ${reconnectCount + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
+            reconnectCount++;
+            
+            // Backoff strategy: wait longer between retries
+            const backoffTime = 1000 * Math.min(reconnectCount, 5);
+            console.log(`Waiting ${backoffTime}ms before reconnecting`);
+            
             reconnectTimer = setTimeout(() => {
               console.log('Attempting to reconnect...');
               setupStream();
-            }, 1000); // Reconnect after 1 second
+            }, backoffTime);
+          } else if (reconnectCount >= MAX_RECONNECT_ATTEMPTS) {
+            console.error('Max reconnection attempts reached. Multiplayer may not function correctly.');
           }
         };
         
@@ -262,9 +382,11 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
       } catch (error) {
         console.error('Failed to setup game update subscription:', error);
         
-        // Schedule retry
-        if (isActive && !reconnectTimer) {
-          reconnectTimer = setTimeout(setupStream, 2000);
+        // Schedule retry with limit
+        if (isActive && reconnectCount < MAX_RECONNECT_ATTEMPTS) {
+          reconnectCount++;
+          const backoffTime = 2000 * Math.min(reconnectCount, 5);
+          reconnectTimer = setTimeout(setupStream, backoffTime);
         }
       }
     };
@@ -289,7 +411,7 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
     };
   }, [gameCode, currentUser?.uid, gameSessionID]);
 
-  // Render the generated game into an iframe
+  // Render the generated game into an iframe with timeout protection
   useEffect(() => {
     if (!gameCode || !gameContainerRef.current) return;
     
@@ -299,19 +421,53 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
       existingOverlay.parentNode.removeChild(existingOverlay);
     }
 
+    // Reset isFirstLoad state when game code changes
+    setIsFirstLoad(true);
+
+    // Clear any existing timeout
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+    }
+
+    // Set loading timeout to prevent indefinite loading
+    const longLoadingTimeout = setTimeout(() => {
+      if (!loaded) {
+        console.error("Game loading timeout exceeded");
+        setLoaded(true); // Force loaded state to prevent indefinite spinner
+        
+        // Display error message
+        if (gameContainerRef.current) {
+          gameContainerRef.current.innerHTML = `
+            <div class="p-4 bg-indigo-900 text-red-300 rounded-lg pixel-border">
+              <p class="font-bold retro-text text-sm">Game loading timed out</p>
+              <p>There may be an issue with the multiplayer connection. Try refreshing the page or restarting the game.</p>
+            </div>
+          `;
+        }
+      }
+    }, 15000); // 15 second timeout
+    
+    loadTimeoutRef.current = longLoadingTimeout;
+
     try {
       // Clear previous content
-      gameContainerRef.current.innerHTML = '';
-      if (iframeRef.current) iframeRef.current.remove();
+      if (gameContainerRef.current) {
+        gameContainerRef.current.innerHTML = '';
+      }
+      
+      if (iframeRef.current) {
+        iframeRef.current.remove();
+      }
 
       // Create sandbox iframe
       const iframe = document.createElement('iframe');
       iframe.style.width = '100%';
       iframe.style.height = '100%';
       iframe.style.border = 'none';
-      iframe.sandbox = 'allow-scripts';
+      iframe.sandbox = 'allow-scripts allow-same-origin';
       iframe.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture';
       iframe.title = gameTitle || 'Game';
+      iframe.crossOrigin = "anonymous";
       
       // Reset loaded state when changing games
       setLoaded(false);
@@ -319,6 +475,14 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
       // Store reference
       iframeRef.current = iframe;
       gameContainerRef.current.appendChild(iframe);
+      
+      // Set a shorter timeout to force loaded state if needed
+      const shortLoadingTimeout = setTimeout(() => {
+        if (!loaded) {
+          console.log("Forcing loaded state after short timeout");
+          setLoaded(true);
+        }
+      }, 5000); // 5 second shorter timeout
 
       // Extract HTML, CSS, JS from the generated code
       let htmlContent = '', cssContent = '', jsContent = '';
@@ -383,7 +547,16 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
                   }, '*');
                 };
 
+                // Define a forced loaded mechanism in case promises don't resolve
+                const forceLoadTimeout = setTimeout(() => {
+                  console.log("Force sending loaded message after timeout");
+                  window.callParentFunction('loaded');
+                }, 3000);
+
                 Promise.all(promises).finally(() => {
+                  // Clear forced timeout if promises resolved naturally
+                  clearTimeout(forceLoadTimeout);
+                  
                   // Run any exposed game loops
                   [window.gameLoop, window.update, window.animate, window.draw, window.render, window.loop]
                     .filter(fn => typeof fn === 'function')
@@ -404,6 +577,8 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
                 document.body.innerHTML = '<div style="color:#EC4899;text-align:center;">Game Error: ' + e.message + '</div>';
                 console.error(e);
                 window.callParentFunction('error', e.message);
+                // Still try to mark as loaded even if there's an error
+                window.callParentFunction('loaded');
               }
             })();
           </script>
@@ -418,6 +593,8 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
       const handleIframeMessage = (event) => {
         if (event.data && event.data.type === 'loaded') {
           setLoaded(true);
+          // Clear the short timeout when we get a loaded message
+          clearTimeout(shortLoadingTimeout);
           window.removeEventListener('message', handleIframeMessage);
         }
       };
@@ -426,13 +603,24 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
 
     } catch (error) {
       console.error('Error rendering game:', error);
-      gameContainerRef.current.innerHTML = `
-        <div class="p-4 bg-indigo-900 text-red-300 rounded-lg pixel-border">
-          <p class="font-bold retro-text text-sm">Error rendering game:</p>
-          <p>${error.message}</p>
-        </div>
-      `;
+      if (gameContainerRef.current) {
+        gameContainerRef.current.innerHTML = `
+          <div class="p-4 bg-indigo-900 text-red-300 rounded-lg pixel-border">
+            <p class="font-bold retro-text text-sm">Error rendering game:</p>
+            <p>${error.message}</p>
+          </div>
+        `;
+      }
+      setLoaded(true); // Force loaded state to prevent indefinite spinner
     }
+
+    // Clear timeout on cleanup
+    return () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+        loadTimeoutRef.current = null;
+      }
+    };
   }, [gameCode, gameTitle, gameKey]);
 
   return (
@@ -458,6 +646,49 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
               ref={gameContainerRef}
               className={`w-full h-full flex items-center justify-center overflow-auto pixel-border rounded-lg bg-gray-800 crt-on transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-30'}`}
             />
+            
+            {/* Debug controls */}
+            {loading && (
+              <div className="absolute top-2 right-2 z-50">
+                <button 
+                  onClick={() => setLoaded(true)} 
+                  className="px-2 py-1 bg-red-600 text-white text-xs rounded">
+                  Force Stop Loading
+                </button>
+              </div>
+            )}
+
+            {gameCode && (
+              <div className="absolute bottom-2 right-2 z-50">
+                <button 
+                  onClick={() => setShowDebugInfo(!showDebugInfo)} 
+                  className="px-2 py-1 bg-gray-800 text-gray-300 text-xs rounded">
+                  {showDebugInfo ? 'Hide Debug' : 'Debug'}
+                </button>
+                
+                {showDebugInfo && (
+                  <div className="bg-black bg-opacity-80 p-2 mt-1 text-xs text-gray-300 rounded w-64">
+                    <div>Loaded: {loaded ? 'Yes' : 'No'}</div>
+                    <div>First Load: {isFirstLoad ? 'Yes' : 'No'}</div>
+                    <div>Players: {players?.length || 0}</div>
+                    <div>Game Key: {gameKey}</div>
+                    <div>Session ID: {gameSessionID ? gameSessionID.substring(0, 8) + '...' : 'None'}</div>
+                    <div className="flex gap-1 mt-1">
+                      <button 
+                        onClick={handleRestartGame} 
+                        className="px-2 py-1 bg-indigo-600 text-white rounded text-xs">
+                        Restart Game
+                      </button>
+                      <button 
+                        onClick={forceLoadedState} 
+                        className="px-2 py-1 bg-green-600 text-white rounded text-xs">
+                        Force Loaded
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center max-w-md bg-gray-800 p-8 rounded-lg pixel-border crt-on">
