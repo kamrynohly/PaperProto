@@ -31,13 +31,16 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
   useEffect(() => {
     const initGame = () => {
         console.log("initializing game: assign player 1 or player 2")
+        console.log("current user:", currentUser.uid)
+        console.log("creator id:", creatorID)
         
-        let player = "you are player 1"
+        let player;
         if (currentUser.uid === creatorID) {
-          console.log("you are player 1")
+        player = "you are player 1";
+        console.log("you are player 1");
         } else {
-          console.log("you are player 2")
-          player = "you are player 2"
+        player = "you are player 2";
+        console.log("you are player 2");
         }
     
 

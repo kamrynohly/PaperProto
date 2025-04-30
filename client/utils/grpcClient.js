@@ -148,10 +148,12 @@ export const subscribeToGameUpdates = (gameSessionID, userID, onGameUpdate) => {
   const stream = client.subscribeToGameUpdates(request, {});
   
   stream.on('data', (response) => {
-    onGameUpdate({
-      fromPlayerID: response.getFromplayerid(),
-      gameState: response.getGamestate()
-    });
+
+    console.log("🚀 Game update received:", response);
+    // onGameUpdate({
+    //   fromPlayerID: response.getFromplayerid(),
+    //   gameState: response.getGamestate()
+    // });
   });
   
   stream.on('error', (err) => {

@@ -210,7 +210,15 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
       });
       
       const response = await sendMessageToClaude(messagesForClaude, systemPrompt);
-      const claudeResponse = response.content[0].text;
+    //   const claudeResponse = response.content[0].text;
+    let claudeResponse = '';
+    // Find the content item with type 'text'
+    for (const item of response.content) {
+    if (item.type === 'text') {
+        claudeResponse = item.text;
+        break;
+    }
+    }
       console.log("Claude response received, length:", claudeResponse.length);
   
       // 4. Extract conversation text by removing the marker blocks
