@@ -119,11 +119,13 @@ export const getPlayers = (gameSessionID, userID) => {
 
 // Subscribe to Game Updates (streaming response)
 export const subscribeToGameUpdates = (gameSessionID, userID, onGameUpdate) => {
+  console.log("PROTO CALL - subscribing to game updates:", gameSessionID, userID)
   const request = new SubscribeToGameUpdatesRequest();
   
   try {
     request.setGamesessionid(gameSessionID);
     request.setUserid(userID);
+    console.log("you are sending this request:", request)
   } catch (e) {
     console.error('Setting subscribeToGameUpdates properties failed:', e);
     // Fall back to direct property assignment
@@ -131,6 +133,11 @@ export const subscribeToGameUpdates = (gameSessionID, userID, onGameUpdate) => {
     request.userID = userID;
   }
   
+//   const stream = client.subscribeToGameUpdates({
+//     gameSessionID: gameSessionID,
+//     userID: currentUser.uid
+//   }, {});
+
   const stream = client.subscribeToGameUpdates(request, {});
   
   stream.on('data', (response) => {

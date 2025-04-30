@@ -69,7 +69,8 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
             console.log('Game state updated:', event.data.update);
 
             try {
-              const response = await sendGameUpdate(userData.id, String(event.data.update));
+                console.log("user data", userData)
+              const response = await sendGameUpdate(currentUser.uid, String(event.data.update));
               console.log('Game update response:', response);
             } catch (error) {
               console.error('Failed to send game update:', error);
@@ -109,11 +110,13 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
     
     try {
       console.log('Setting up game update subscription');
+      console.log("current user:", currentUser.uid)
+      console.log("game session id:", gameSessionID)
       
       // Create the stream
       const stream = subscribeToGameUpdates({
         gameSessionID: gameSessionID,
-        userID: userData.id
+        userID: currentUser.uid
       });
       
       // Store reference to the stream
