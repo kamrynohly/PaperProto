@@ -4,9 +4,11 @@ const nextConfig = {
   devIndicators: {
     buildActivityPosition: 'bottom-right',
   },
+  optimizeFonts: true,
   images: {
     domains: [
       'firebasestorage.googleapis.com',
+      'paper-proto.com'
       // Add any other domains you need to load images from
     ],
   },

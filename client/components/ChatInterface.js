@@ -432,7 +432,7 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
               onClick={toggleImageUpload}
               className="text-pink-400 hover:text-pink-300 text-sm flex items-center bg-gray-700 px-3 py-1 rounded pixel-border retro-text"
             >
-              {showImageUpload ? "Hide Images" : "Add Images"}
+              {showImageUpload ? "Hide Drawings" : "Add Drawings"}
             </button>
             {uploadedImages.length > 0 && (
               <div className="text-xs text-indigo-300 retro-text">

@@ -1,3 +1,4 @@
+// updated Home component with game cover image upload at publish step
 "use client";
 
 import { useState, useEffect } from 'react';

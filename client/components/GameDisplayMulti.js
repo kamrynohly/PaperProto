@@ -139,7 +139,7 @@ export default function GameDisplayMulti({ gameCode, gameType, loading }) {
                 return;
               }
               
-              const response = await sendGameUpdate(currentUser.uid, String(event.data.update));
+              const response = await sendGameUpdate(currentUser.uid, String(event.data.update), gameSessionID);
               console.log('3. Game update response:', response);
             } catch (error) {
               console.error('3. Failed to send game update:', error);

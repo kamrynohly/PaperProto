@@ -1,3 +1,7 @@
+
+
+proto/__pycache__/
+server/__pycache__/
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -39,13 +43,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-../node_modules/
-../.next/
-
-../proto/__pycache__/*
-../server/__pycache__/*
-
-../proto/__pycache__/
-../server/__pycache__/
-
+node_modules/
