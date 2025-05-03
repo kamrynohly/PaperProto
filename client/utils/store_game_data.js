@@ -1,7 +1,7 @@
 // utils/store_game_data.js
 
 import { doc, getDoc, updateDoc, deleteField, increment } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db } from '../client/lib/firebase';
 
 export async function update_game_leaderboard(game_id, user_id, user_score) {
     try {
