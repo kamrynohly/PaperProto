@@ -8,9 +8,6 @@
     "start": "next start",
     "lint": "next lint"
   },
-  "overrides": {
-  "lightningcss-linux-x64-gnu": "npm:lightningcss-linux-x64-musl@latest"
-},
   "dependencies": {
     "@grpc/grpc-js": "^1.13.3",
     "next": "^15.3.1",
