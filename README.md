@@ -2,7 +2,7 @@
 
 ## About The Project
 
-PaperProto is a revolutionary platform that democratizes game design by allowing anyone to create games without technical knowledge. Simply sketch your prototype on paper, a whiteboard, or describe it verbally, and PaperProto will instantly transform it into a playable game.
+PaperProto is a revolutionary platform that democratizes game design by allowing anyone to create games without technical knowledge. Simply sketch your prototype on paper, a whiteboard, or describe it verbally, and PaperProto will instantly transform it into a playable game. Build a single-player game, or build a multiplayer game to share and play with friends!
 
 ### Key Features
 
@@ -27,12 +27,6 @@ In the world of game design, the gap between imagination and implementation has 
   - Generating functional game code based on inputs
   - Assisting non-technical users with design refinement
   - Enabling rapid development of the platform itself
-
-## Challenges We Faced
-
-- **Image Optimization**: Finding the right balance in data compression while feeding images to Claude's API without triggering hallucinations
-- **Interactive Platform Development**: Creating a seamless environment where users can both design and play games
-- **Technical Accessibility**: Developing intuitive interfaces that help non-technical users design games without requiring them to understand code
 
 ## Accomplishments
 
@@ -76,28 +70,48 @@ We're proud that PaperProto can take a sketch and bring it to life within second
    npm run dev
    ```
 
-## Run Code
+## Launch Server & Client
+
+### 1. Launch the Envoy proxy server
+
 First, start by launching the envoy proxy server, which bridges the web client to the python back-end.
-To do so, `cd proxy` and run the following command to launch Docker with our `envoy.yaml` configuration:
-`docker run -d --name envoy-proxy \
+
+```bash
+# Navigate to proxy directory
+cd proxy
+
+# Launch Docker with envoy.yaml configuration
+docker run -d --name envoy-proxy \
   -p 8080:8080 \
   -v $(pwd)/envoy.yaml:/etc/envoy/envoy.yaml \
   --add-host=host.docker.internal:host-gateway \
-  envoyproxy/envoy:v1.22.0`
+  envoyproxy/envoy:v1.22.0
+```
 
-If you are restarting, please be sure to run
-`docker stop envoy-proxy` first. Then, run
-`docker rm envoy-proxy`.
+If you are restarting, run these commands first:
 
-Then, launch the server with the identical IP address to the one you specified in envoy.yaml.
+```bash
+docker stop envoy-proxy
+docker rm envoy-proxy
+```
 
+### 2. Launch the server
+
+Launch the server with the identical IP address specified in envoy.yaml:
+
+```bash
 python3 main.py --ip your_ip_here
+```
 
-Lastly, launch the client by 
-`cd client`
+### 3. Launch the client
 
-Then, run:
-`npm run dev`
+```bash
+# Navigate to client directory
+cd client
+
+# Start development server
+npm run dev
+```
 
 ## Usage
 
@@ -109,15 +123,6 @@ Then, run:
    - Describe your game idea in text
 4. Let PaperProto transform your input into a playable game
 5. Test, refine, and publish your game to the community
-
-## Roadmap
-
-- [ ] Mobile app version for on-the-go game creation
-- [ ] Additional game templates and components
-- [ ] Advanced customization options for experienced designers
-- [ ] Collaboration features for team-based game development
-- [ ] Export options for standalone game deployment
-
 
 ## Acknowledgements
 
