@@ -12,7 +12,7 @@ import {
 } from '../proto/service_pb';
 
 // Create the client (replace with your actual server URL)
-const client = new PaperProtoServerClient('http://localhost:8080');
+const client = new PaperProtoServerClient(process.env.NEXT_PUBLIC_SERVER_URL);
 
 // Launch Game Room
 export const launchGameRoom = (gameSessionID, hostID, hostUsername) => {
