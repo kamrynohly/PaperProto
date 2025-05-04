@@ -32,6 +32,18 @@ def serve(ip, port):
     logger.info(f"Server started on port {port} for ip {ip}")
     server.wait_for_termination()
 
+# Uncomment if using EC2 AWS:
+# def serve(ip, port):
+#     # Create our connection and launch the PaperProtoServer.
+#     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+#     service_pb2_grpc.add_PaperProtoServerServicer_to_server(PaperProtoServer(ip, port), server)
+#     # Bind to both IPv4 and IPv6 interfaces
+#     server.add_insecure_port(f'0.0.0.0:{port}')  # IPv4
+#     server.add_insecure_port(f'[::]:{port}')  # IPv6
+#     server.start()
+#     logger.info(f"Server started on port {port} for ip {ip}")
+#     server.wait_for_termination()
+
 # MARK: Command-line arguments.
 def validate_ip(value):
     """Validate an IP address"""

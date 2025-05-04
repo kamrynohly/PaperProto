@@ -50,7 +50,7 @@ static_resources:
         - endpoint:
             address:
               socket_address:
-                address: your_ip_address # For local development, update this IP to be the matching IP as the server.
+                address: 127.0.0.1 # For local development, update this IP to be the matching IP as the server. 
                 port_value: 5001 
 
 
@@ -61,9 +61,21 @@ static_resources:
 #   listeners:
 #     - name: listener_https
 #       address:
-#         socket_address: { address: 0.0.0.0, port_value: 443 }
+#         socket_address:
+#           address: 0.0.0.0
+#           port_value: 443
 #       filter_chains:
-#         - filters:
+#         - transport_socket:
+#             name: envoy.transport_sockets.tls
+#             typed_config:
+#               "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+#               common_tls_context:
+#                 tls_certificates:
+#                   - certificate_chain:
+#                       filename: "/etc/certs/fullchain.pem"
+#                     private_key:
+#                       filename: "/etc/certs/privkey.pem"
+#           filters:
 #             - name: envoy.filters.network.http_connection_manager
 #               typed_config:
 #                 "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
@@ -96,17 +108,7 @@ static_resources:
 #                   - name: envoy.filters.http.router
 #                     typed_config:
 #                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-#           transport_socket:
-#             name: envoy.transport_sockets.tls
-#             typed_config:
-#               "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
-#               common_tls_context:
-#                 tls_certificates:
-#                   - certificate_chain:
-#                       filename: "/etc/letsencrypt/live/proxy.paper-proto.com/fullchain.pem"
-#                     private_key:
-#                       filename: "/etc/letsencrypt/live/proxy.paper-proto.com/privkey.pem"
-              
+
 #   clusters:
 #     - name: paperproto_service
 #       connect_timeout: 0.25s
@@ -120,5 +122,5 @@ static_resources:
 #               - endpoint:
 #                   address:
 #                     socket_address:
-#                       address: host.docker.internal
+#                       address: put ec2 IP here
 #                       port_value: 5001

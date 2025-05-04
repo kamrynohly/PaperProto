@@ -76,6 +76,29 @@ We're proud that PaperProto can take a sketch and bring it to life within second
    npm run dev
    ```
 
+## Run Code
+First, start by launching the envoy proxy server, which bridges the web client to the python back-end.
+To do so, `cd proxy` and run the following command to launch Docker with our `envoy.yaml` configuration:
+`docker run -d --name envoy-proxy \
+  -p 8080:8080 \
+  -v $(pwd)/envoy.yaml:/etc/envoy/envoy.yaml \
+  --add-host=host.docker.internal:host-gateway \
+  envoyproxy/envoy:v1.22.0`
+
+If you are restarting, please be sure to run
+`docker stop envoy-proxy` first. Then, run
+`docker rm envoy-proxy`.
+
+Then, launch the server with the identical IP address to the one you specified in envoy.yaml.
+
+python3 main.py --ip your_ip_here
+
+Lastly, launch the client by 
+`cd client`
+
+Then, run:
+`npm run dev`
+
 ## Usage
 
 1. **Create an account** or log in to PaperProto
