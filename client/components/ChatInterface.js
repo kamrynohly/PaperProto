@@ -1,5 +1,4 @@
 "use client"
-// components/ChatInterface.js
 
 import { useState, useEffect, useRef } from 'react';
 import { sendMessageToClaude } from '../utils/claude-api';
@@ -13,6 +12,8 @@ const initialMessages = [
     content: "What kind of game would you like me to build for you today?"
   }
 ];
+
+// This component creates the interface in the "Create" tab to chat with Claude to generate a game.
 
 export default function ChatInterface({ onGameRequest, setLoading }) {
   const [messages, setMessages] = useState(initialMessages);

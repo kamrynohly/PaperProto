@@ -1,8 +1,9 @@
 "use client"
-// components/GameDisplay.js
 
 import { useState, useEffect, useRef } from 'react';
 import DinoGame from './DinoGame';
+
+// This component allows single-player games to be rendered and played directly on the site.
 
 export default function GameDisplay({ gameCode, gameType, loading }) {
   const [gameTitle, setGameTitle] = useState('');

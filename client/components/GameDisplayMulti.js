@@ -1,12 +1,13 @@
 "use client"
-// components/GameDisplayMulti.js
 
 import { useState, useEffect, useRef } from 'react';
 import DinoGame from './DinoGame';
-import RetroLeaderboard from './RetroLeaderboard';
 import { subscribeToGameUpdates, sendGameUpdate } from '../utils/grpcClient';
 import { useAuth } from '../contexts/AuthContext';
 import { useMultiplayer } from '../contexts/MultiplayerContext';
+
+// This component is highly important for rendering multiplayer games to be played on the site.
+// In addition, this component controls the back-and-forth communication between the game and the client.
 
 export default function GameDisplayMulti({ gameCode, gameType, loading }) {
   const [gameTitle, setGameTitle] = useState('');

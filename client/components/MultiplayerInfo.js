@@ -1,7 +1,9 @@
-// components/MultiplayerInfo.js
 'use client';
 
 import { useMultiplayer } from '../contexts/MultiplayerContext';
+
+// This component presents information about multiplayer games, such as
+// which users are currently playing.
 
 export default function MultiplayerInfo({ currentUserId }) {
   const { players, gameSessionID } = useMultiplayer();

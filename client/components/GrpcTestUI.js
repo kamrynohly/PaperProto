@@ -11,6 +11,9 @@ import {
   heartbeat 
 } from '../utils/grpcClient';
 
+// This component is exclusively used for testing the connection between our client and server,
+// as well as each grpc call.
+
 // Helper functions
 const generateSessionID = () => `game_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 const generateUserID = () => `user_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;

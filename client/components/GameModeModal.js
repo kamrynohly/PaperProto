@@ -1,7 +1,9 @@
 "use client"
-// components/GameModeModal.js
 
 import { useState } from 'react';
+
+// This component presents the modal for users to specify whether they would like to build a single-player
+// or multiplayer game.
 
 export default function GameModeModal({ isOpen, onClose, onSelectMode }) {
   const [selectedMode, setSelectedMode] = useState(null);

@@ -1,8 +1,10 @@
-// components/RetroLeaderboard.js
 import { useState, useEffect } from 'react';
 import { collection, addDoc, query, orderBy, limit, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase'; // Make sure you have this import
 import { useAuth } from '../contexts/AuthContext'; // Import auth context
+
+// This component presents a cool, retro-style leaderboard for users to be added to
+// when they succeed at a game!
 
 export default function RetroLeaderboard({ gameId, newScore = null, refreshKey }) {
   const [leaderboard, setLeaderboard] = useState([]);

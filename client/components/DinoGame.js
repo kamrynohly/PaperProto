@@ -1,6 +1,8 @@
-// components/DinoGame.js
 "use client";
 import { useEffect, useRef } from "react";
+
+// This component creates the waiting game while games are generated.
+// It is inspired in part by the Google Dino game.
 
 export default function DinoGame() {
   const containerRef = useRef(null);
