@@ -54,8 +54,8 @@ export const MultiplayerProvider = ({ children }) => {
     };
   }, []);
 
-// Function to fetch players for a specific game session
-const fetchPlayers = async (sessionID) => {
+  // Function to fetch players for a specific game session
+  const fetchPlayers = async (sessionID) => {
     if (!sessionID || !userData || !currentUser?.uid) {
       return;
     }
@@ -115,14 +115,13 @@ const fetchPlayers = async (sessionID) => {
     // Handle errors
     stream.on('error', (error) => {
       console.error('Player monitoring stream error:', error);
-      // Implement reconnection logic if needed
+      // TODO: handle later!
     });
     
     // Handle stream end
-    // Handle stream end
     stream.on('end', () => {
         console.log('Player monitoring stream ended');
-        // Implement reconnection logic
+        // TODO: reconnect?
         setTimeout(() => {
         if (gameSessionID) {
             console.log('Attempting to reconnect player stream...');
@@ -153,27 +152,27 @@ const fetchPlayers = async (sessionID) => {
   };
   
   
-    // Function to join an existing game session
-    const joinGameSession = (gameId, sessionID, userID, username) => {
-        // Only update if the session ID is different
-        if (gameSessionID === sessionID) return;
-        
-        // Reset player tracking first
-        existingPlayerIdsRef.current = new Set();
-        // setPlayers([]);
-        
-        // Set game session ID
-        setGameId(gameId);
-        setGameSessionID(sessionID);
-        
-        // Add the joining player to the tracked players first
-        if (userID && username) {
-            existingPlayerIdsRef.current.add(userID);
-            setPlayers([{
-                userID,
-                username
+  // Function to join an existing game session
+  const joinGameSession = (gameId, sessionID, userID, username) => {
+      // Only update if the session ID is different
+      if (gameSessionID === sessionID) return;
+      
+      // Reset player tracking first
+      existingPlayerIdsRef.current = new Set();
+      // setPlayers([]);
+      
+      // Set game session ID
+      setGameId(gameId);
+      setGameSessionID(sessionID);
+      
+      // Add the joining player to the tracked players first
+      if (userID && username) {
+        existingPlayerIdsRef.current.add(userID);
+        setPlayers([{
+            userID,
+            username
         }]);
-    }
+      }
     
     // Add the joining player to the tracked players first
     if (userID && username) {
@@ -195,7 +194,6 @@ const fetchPlayers = async (sessionID) => {
       playerStreamRef.current.cancel();
       playerStreamRef.current = null;
     }
-    
     // Reset state
     setGameSessionID(null);
     setCreatorID(null);
@@ -218,7 +216,7 @@ const fetchPlayers = async (sessionID) => {
     initializeGameSession,
     joinGameSession,
     clearGameSession,
-    fetchPlayers // Export the new function
+    fetchPlayers
   };
   
   return (

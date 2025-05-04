@@ -11,10 +11,16 @@ import {
   HeartbeatRequest
 } from '../proto/service_pb';
 
-// Create the client (replace with your actual server URL)
+// Create the client from the server URL in the .env file
+// This will create a client utilizing web-grpc, which can communicate with our server to send grpc calls.
 const client = new PaperProtoServerClient(process.env.NEXT_PUBLIC_SERVER_URL);
 
-// Launch Game Room
+/**
+ * Launch Game Room: Send a request to the server to start a new game room.
+ * @param {string} gameSessionID - The UUID of the new game
+ * @param {string} hostID - The UUID of the user creating the game
+ * @param {string} hostUsername - The username of the user creating the game
+ */
 export const launchGameRoom = (gameSessionID, hostID, hostUsername) => {
   return new Promise((resolve, reject) => {
     const request = new LaunchGameRoomRequest();
@@ -47,9 +53,12 @@ export const launchGameRoom = (gameSessionID, hostID, hostUsername) => {
   });
 };
 
-
-
-// Join Game Room
+/**
+ * Join Game Room: Send a request to join an existing game
+ * @param {string} gameSessionID - The UUID of the game to join
+ * @param {string} userID - The UUID of the user joining the game
+ * @param {string} username - The username of the user joining the game
+ */
 export const joinGameRoom = (gameSessionID, userID, username) => {
   return new Promise((resolve, reject) => {
     const request = new JoinGameRoomRequest();
@@ -84,41 +93,50 @@ export const joinGameRoom = (gameSessionID, userID, username) => {
   });
 };
 
-// Get Players (streaming response)
-// Updated getPlayers function in grpcClient.js
+/**
+ * Get Players: Returns a stream of players joining the game room, 
+ * specifically player IDs and usernames.
+ * @param {string} gameSessionID - The UUID of the game to monitor
+ * @param {string} userID - The UUID of the user requesting to be updated on players who join.
+ */
 export const getPlayers = (gameSessionID, userID) => {
-    // Add validation
-    if (!gameSessionID) {
-      console.error('getPlayers called with empty gameSessionID');
-      throw new Error('Game session ID cannot be empty');
-    }
-    
-    if (!userID) {
-      console.error('getPlayers called with empty userID');
-      throw new Error('User ID cannot be empty');
-    }
-  
-    const request = new GetPlayersRequest();
-    
-    try {
-      request.setGamesessionid(gameSessionID);
-      request.setUserid(userID);
-      
-      // Debug log
-      console.log('getPlayers request:', {
-        sessionID: request.getGamesessionid(),
-        userID: request.getUserid()
-      });
-    } catch (e) {
-      console.error('Setting getPlayers properties failed:', e);
-      throw e;
-    }
-    
-    console.log('Creating gRPC stream for players');
-    return client.getPlayers(request, {});
-  };
+  // Add validation
+  if (!gameSessionID) {
+    console.error('getPlayers called with empty gameSessionID');
+    throw new Error('Game session ID cannot be empty');
+  }
 
-// Subscribe to Game Updates (streaming response)
+  if (!userID) {
+    console.error('getPlayers called with empty userID');
+    throw new Error('User ID cannot be empty');
+  }
+
+  const request = new GetPlayersRequest();
+
+  try {
+    request.setGamesessionid(gameSessionID);
+    request.setUserid(userID);
+    
+    // Debug log
+    console.log('getPlayers request:', {
+      sessionID: request.getGamesessionid(),
+      userID: request.getUserid()
+    });
+  } catch (e) {
+    console.error('Setting getPlayers properties failed:', e);
+    throw e;
+  }
+
+  console.log('Creating gRPC stream for players');
+  return client.getPlayers(request, {});
+};
+
+/**
+ * Subscribe to Game Updates: Get updates on game state through a stream of game updates.
+ * @param {string} gameSessionID - The UUID of the game to monitor
+ * @param {string} userID - The UUID of the user requesting to be updated on game state changes
+ * Contains a call back for when the stream updates.
+ */
 export const subscribeToGameUpdates = (gameSessionID, userID, onGameUpdate) => {
   console.log("PROTO CALL - subscribing to game updates:", gameSessionID,  userID)
   const request = new SubscribeToGameUpdatesRequest();
@@ -144,7 +162,6 @@ export const subscribeToGameUpdates = (gameSessionID, userID, onGameUpdate) => {
   const stream = client.subscribeToGameUpdates(request, {});
   
   stream.on('data', (response) => {
-
     console.log("🚀 Game update to send to other player received:", response);
     onGameUpdate({
       fromPlayerID: response.getFromplayerid(),
@@ -164,7 +181,12 @@ export const subscribeToGameUpdates = (gameSessionID, userID, onGameUpdate) => {
   return stream;
 };
 
-// Send Game Update
+/**
+ * Send Game Update: When a game is updated, send a notification to the server of the update.
+ * @param {string} fromPlayerID - The UUID of the player making the update
+ * @param {string} gameState - A string formatted by the game itself to communicate an update
+ * @param {string} gameSessionID - The UUID of the game being updated
+ */
 export const sendGameUpdate = (fromPlayerID, gameState, gameSessionID) => {
   return new Promise((resolve, reject) => {
     const request = new SendGameUpdateRequest();
@@ -196,7 +218,11 @@ export const sendGameUpdate = (fromPlayerID, gameState, gameSessionID) => {
   });
 };
 
-// Game End
+/**
+ * Game End: Communicate to the server that the game has concluded.
+ * @param {string} gameSessionID - The UUID of the game being updated
+ * @param {string} endState - A string formatted by the game itself to communicate its end state
+ */
 export const gameEnd = (gameSessionID, endState) => {
   return new Promise((resolve, reject) => {
     const request = new GameEndRequest();
@@ -226,11 +252,16 @@ export const gameEnd = (gameSessionID, endState) => {
   });
 };
 
-// Heartbeat
+/**
+ * Heartbeat: Send a request to check on the server
+ * @param {string} requestorID - The UUID of the client requesting the check on server
+ * @param {string} serverID - The UUID of the server to check on
+ */
 export const heartbeat = (requestorID, serverID) => {
   return new Promise((resolve, reject) => {
     const request = new HeartbeatRequest();
 
+    // Helpful debugging code - DO NOT DELETE.
     // console.log('Available methods on request:', Object.getOwnPropertyNames(
     //   Object.getPrototypeOf(request)
     // ));

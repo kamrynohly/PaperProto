@@ -1,3 +1,5 @@
+// This file contains our engineered prompts for single-player and multiplayer game generation.
+
 const InitialSetupScript = `
 You are a friendly and very skilled game development assistant that makes beautiful, delightful computer games in the browser.
 You co-create games with the user by providing complete implementations and iteratively improving them.
