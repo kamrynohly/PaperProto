@@ -12,7 +12,7 @@ import {
 } from '../utils/grpcClient';
 
 // This component is exclusively used for testing the connection between our client and server,
-// as well as each grpc call.
+// as well as each gRPC call.
 
 // Helper functions
 const generateSessionID = () => `game_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -255,12 +255,27 @@ export default function GrpcTestUI() {
         // Start streaming players
         const stream = getPlayers(
           sharedState.gameSessionID,
-          sharedState.hostID,
-          (player) => {
-            addLog(`Received player: ${JSON.stringify(player)}`);
-            setPlayers(prev => [...prev, player]);
-          }
+          sharedState.hostID
         );
+        
+        // Add event handlers
+        stream.on('data', (response) => {
+          const player = {
+            userID: response.getUserid(),
+            username: response.getUsername()
+          };
+          addLog(`Received player: ${JSON.stringify(player)}`);
+          setPlayers(prev => [...prev, player]);
+        });
+        
+        stream.on('error', (err) => {
+          addLog(`Player stream error: ${err.message}`);
+        });
+        
+        stream.on('end', () => {
+          addLog('Player stream ended');
+          setIsStreaming(false);
+        });
         
         setPlayerStream(stream);
         setIsStreaming(true);
@@ -349,19 +364,22 @@ export default function GrpcTestUI() {
         addLog(`Subscribing to updates for session: ${sharedState.gameSessionID}, player: ${sharedState.playerID}`);
         setUpdates([]);
         
+        // Create onGameUpdate callback function
+        const onGameUpdate = (update) => {
+          const newUpdate = {
+            id: Date.now(),
+            timestamp: new Date().toISOString(),
+            ...update
+          };
+          addLog(`Received game update: ${JSON.stringify(update)}`);
+          setUpdates(prev => [newUpdate, ...prev]);
+        };
+        
         // Start subscription
         const stream = subscribeToGameUpdates(
           sharedState.gameSessionID,
           sharedState.playerID,
-          (update) => {
-            const newUpdate = {
-              id: Date.now(),
-              timestamp: new Date().toISOString(),
-              ...update
-            };
-            addLog(`Received game update: ${JSON.stringify(update)}`);
-            setUpdates(prev => [newUpdate, ...prev]);
-          }
+          onGameUpdate
         );
         
         setUpdateStream(stream);
@@ -441,11 +459,12 @@ export default function GrpcTestUI() {
       setResult(null);
       
       try {
-        addLog(`Sending game update: fromPlayer=${sharedState.hostID}, state=${gameState}`);
+        addLog(`Sending game update: fromPlayer=${sharedState.hostID}, state=${gameState}, sessionID=${sharedState.gameSessionID}`);
         
         const response = await sendGameUpdate(
           sharedState.hostID,
-          gameState
+          gameState,
+          sharedState.gameSessionID  // Add the missing gameSessionID parameter
         );
         
         setResult(response);
@@ -466,6 +485,16 @@ export default function GrpcTestUI() {
             type="text"
             value={sharedState.hostID}
             onChange={(e) => setSharedState({...sharedState, hostID: e.target.value})}
+            className="w-full border rounded-md px-3 py-2 text-sm"
+          />
+        </div>
+        
+        <div>
+          <label className="block mb-1 font-medium">Game Session ID:</label>
+          <input
+            type="text"
+            value={sharedState.gameSessionID}
+            onChange={(e) => setSharedState({...sharedState, gameSessionID: e.target.value})}
             className="w-full border rounded-md px-3 py-2 text-sm"
           />
         </div>
