@@ -11,7 +11,6 @@ from proto import service_pb2
 from proto import service_pb2_grpc
 from PaperProtoServer import PaperProtoServer
 
-
 # MARK: Initialize Logger
 # Configure logging set-up. We want to log times & types of logs, as well as
 # function names & the subsequent message.
@@ -32,7 +31,6 @@ def serve(ip, port):
     server.start()
     logger.info(f"Server started on port {port} for ip {ip}")
     server.wait_for_termination()
-
 
 # MARK: Command-line arguments.
 def validate_ip(value):
@@ -63,7 +61,6 @@ def parse_arguments():
         help='Server port (default: 5001)'
     )
     return parser.parse_args()
-
 
 # MARK: MAIN
 if __name__ == "__main__":
