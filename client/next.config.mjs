@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  experimental: {
+    // Disable the CSS optimization that requires lightningcss
+    optimizeCss: false
+  },
   devIndicators: {
     buildActivityPosition: 'bottom-right',
   },
