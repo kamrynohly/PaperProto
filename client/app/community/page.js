@@ -1,4 +1,3 @@
-// app/community/page.jsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -327,7 +326,6 @@ export default function CommunityPage() {
           </div>
         )}
       </main>
-
       <BottomNavigation/>
     </div>
   );

@@ -1,5 +1,7 @@
-// app/opengraph-image.js
 import { ImageResponse } from 'next/og';
+
+// This page controls the website preview when the URL to paper-proto.com is shared via text-messages, on social media,
+// or if the link is embedded into a platform. It is purely for sharing aesthetics.
 
 export const runtime = 'edge';
 

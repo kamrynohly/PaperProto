@@ -1,4 +1,3 @@
-// app/api/claude/route.js
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
@@ -30,63 +29,63 @@ export async function POST(request) {
     })));
     
     // Process user messages with images
-for (let i = 0; i < messages.length; i++) {
-    const msg = messages[i];
-    
-    // Handle user messages with images
-    if (msg.role === 'user' && msg.hasImages === true && typeof msg.content === 'object' && !Array.isArray(msg.content)) {
-      console.log(`🖼️ Processing user message with images at index ${i}`);
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
       
-      const { text, images } = msg.content;
-      
-      // Convert to multimodal format
-      const multiModalContent = [
-        { type: 'text', text: text || '' }
-      ];
-      
-      // Add images
-      if (Array.isArray(images) && images.length > 0) {
-        console.log(`Found ${images.length} images to process`);
+      // Handle user messages with images
+      if (msg.role === 'user' && msg.hasImages === true && typeof msg.content === 'object' && !Array.isArray(msg.content)) {
+        console.log(`🖼️ Processing user message with images at index ${i}`);
         
-        for (let j = 0; j < images.length; j++) {
-          const imgUrl = images[j];
+        const { text, images } = msg.content;
+        
+        // Convert to multimodal format
+        const multiModalContent = [
+          { type: 'text', text: text || '' }
+        ];
+        
+        // Add images
+        if (Array.isArray(images) && images.length > 0) {
+          console.log(`Found ${images.length} images to process`);
           
-          // Strip the data URL prefix
-          const base64Data = imgUrl.replace(/^data:image\/\w+;base64,/, '');
-          
-          multiModalContent.push({
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: 'image/jpeg',
-              data: base64Data
-            }
-          });
-          
-          console.log(`Processed image ${j+1}, data length: ${base64Data.length} chars`);
+          for (let j = 0; j < images.length; j++) {
+            const imgUrl = images[j];
+            
+            // Strip the data URL prefix
+            const base64Data = imgUrl.replace(/^data:image\/\w+;base64,/, '');
+            
+            multiModalContent.push({
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: 'image/jpeg',
+                data: base64Data
+              }
+            });
+            
+            console.log(`Processed image ${j+1}, data length: ${base64Data.length} chars`);
+          }
         }
+        
+        // Replace the original content with the multimodal format
+        messages[i] = {
+          role: msg.role,
+          content: multiModalContent
+        };
+        
+        console.log(`✅ Converted message ${i} to multimodal format with ${multiModalContent.length - 1} images`);
       }
       
-      // Replace the original content with the multimodal format
-      messages[i] = {
-        role: msg.role,
-        content: multiModalContent
-      };
+      // Remove hasImages property from all messages before sending to API
+      if (messages[i].hasImages !== undefined) {
+        delete messages[i].hasImages;
+      }
       
-      console.log(`✅ Converted message ${i} to multimodal format with ${multiModalContent.length - 1} images`);
+      // Fix undefined/null content
+      if (messages[i].content === undefined || messages[i].content === null) {
+        console.log(`⚠️ Fixing undefined/null content in message ${i}`);
+        messages[i].content = "";
+      }
     }
-    
-    // Remove hasImages property from all messages before sending to API
-    if (messages[i].hasImages !== undefined) {
-      delete messages[i].hasImages;
-    }
-    
-    // Fix undefined/null content
-    if (messages[i].content === undefined || messages[i].content === null) {
-      console.log(`⚠️ Fixing undefined/null content in message ${i}`);
-      messages[i].content = "";
-    }
-  }
     
     // Check if any message has multimodal content after processing
     const hasMultimodal = messages.some(msg => Array.isArray(msg.content));

@@ -1,4 +1,3 @@
-// app/page.js
 'use client';
 
 import Link from 'next/link';

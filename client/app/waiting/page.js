@@ -68,16 +68,6 @@ export default function WaitingRoomPage() {
     }
   };
   
-  // Join the game session when component mounts
-//   useEffect(() => {
-//     // Only join if we have the required data AND haven't joined yet
-//     if (params.id && userData && !hasJoinedSessionRef.current) {
-//       joinGameSession(params.id);
-//       // Mark that we've joined to prevent repeated calls
-//       hasJoinedSessionRef.current = true;
-//     }
-//   }, [params.id, userData, joinGameSession]);
-  
   // Start polling when gameSessionID is available
   useEffect(() => {
     if (gameSessionID && userData) {
@@ -146,7 +136,7 @@ export default function WaitingRoomPage() {
   
   // Function to leave the waiting room
   const handleLeaveRoom = () => {
-    router.push('/multiplayer');
+    router.push('/community');
   };
   
   // Get status indicator color

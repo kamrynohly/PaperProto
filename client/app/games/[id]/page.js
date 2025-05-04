@@ -1,4 +1,3 @@
-// app/games/[id]/page.js
 'use client';
 
 import { useState, useEffect, use } from 'react';
@@ -6,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc, arrayRemove, increment, arrayUnion, onSnapshot, collection, addDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
-import BottomNavigation from '../../../components/BottomNavigation';
 import GameDisplay from '../../../components/GameDisplay';
 import { useAuth } from '../../../contexts/AuthContext';
 import RetroLeaderboard from '../../../components/RetroLeaderboard';
@@ -508,7 +506,6 @@ export default function GamePage({ params }) {
           </div>
         )}
       </main>
-      {/* <BottomNavigation /> */}
       {showCopyNotification && (
         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-indigo-900 border-4 border-pink-500 text-white px-6 py-4 rounded-md shadow-[0px_0px_15px_5px_rgba(236,72,153,0.5)]">
           <div className="text-center">

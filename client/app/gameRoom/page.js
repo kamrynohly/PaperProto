@@ -28,7 +28,6 @@ export default function MultiplayerPage() {
   useEffect(() => {
     clearGameSession();
     console.log("cleared game session")
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Function to check server connection status using gRPC heartbeat
@@ -65,7 +64,6 @@ export default function MultiplayerPage() {
         userData.username
       );
       
-      // TODO: handle status
       if (result) {
         // Set the game session in the multiplayer context
         joinGameSession(gameId, sessionCode, currentUser.uid, userData.username);

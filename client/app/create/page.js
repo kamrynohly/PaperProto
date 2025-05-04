@@ -1,4 +1,3 @@
-// updated Home component with game cover image upload at publish step
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -222,7 +221,6 @@ export default function Home() {
               )}
             </div>
             {/* Pass explicitly loading={loading} to ensure the prop is passed */}
-
             {
                 gameMode === 'single' ? (
                     <GameDisplay 
