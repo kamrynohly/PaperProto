@@ -63,14 +63,15 @@ We're proud that PaperProto can take a sketch and bring it to life within second
    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
    NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-   CLAUDE_API_KEY=your_claude_api_key
+   API_KEY=your_claude_api_key
+   NEXT_PUBLIC_SERVER_URL=your_server_IP
    ```
 4. Start the development server
    ```sh
    npm run dev
    ```
 
-## Launch Server & Client
+## Launch Server & Proxy
 
 ### 1. Launch the Envoy proxy server
 
@@ -103,7 +104,7 @@ Launch the server with the identical IP address specified in envoy.yaml:
 python3 main.py --ip your_ip_here
 ```
 
-### 3. Launch the client
+### 3. Launch the client (if not completed beforehand)
 
 ```bash
 # Navigate to client directory
