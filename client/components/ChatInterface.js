@@ -345,11 +345,11 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
     
     // Initial setup - complete game implementation
     if (step === 0) {
-      basePrompt = InitialSetupScript;
+      basePrompt = selectedGameMode === 'multi' ? InitialMultiSetupScript : InitialSetupScript;
     }
     // Improvement cycle - refine based on user feedback
     else {
-      basePrompt = ImprovementCycleScript;
+      basePrompt = selectedGameMode === 'multi' ? ImprovementMultiCycleScript : ImprovementCycleScript;
     }
     
     // If gameMode is defined, append it to the system prompt

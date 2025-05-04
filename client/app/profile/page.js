@@ -64,9 +64,18 @@ function DashboardContent() {
   const [deleteProject, setDeleteProject] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  // SHARE
-  const [showCopyNotification, setShowCopyNotification] = useState(false);
+  // NOTIFICATION SYSTEM - Centralized for all actions
+  const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
+  
+  // Show notification helper function
+  const showNotificationMessage = (message, duration = 2500) => {
+    setNotificationMessage(message);
+    setShowNotification(true);
+    setTimeout(() => {
+      setShowNotification(false);
+    }, duration);
+  };
 
   // Handle logout function
   const handleLogout = async () => {
@@ -78,7 +87,6 @@ function DashboardContent() {
     }
   };
 
-  // Improved real-time listener for user data and games
   // Improved real-time listener for user data and games
   useEffect(() => {
     if (!currentUser) return;
@@ -246,14 +254,13 @@ function DashboardContent() {
     
     try {
       setUploading(true);
-      setNotificationMessage('Compressing image...');
-      setShowCopyNotification(true);
+      showNotificationMessage('Compressing image...');
       
       // Compress the image first
       const compressedBase64 = await compressImage(file);
       
       try {
-        setNotificationMessage('Uploading image...');
+        showNotificationMessage('Uploading image...');
         
         // Update the user document in Firestore with compressed image
         await updateDoc(doc(db, "users", currentUser.uid), { 
@@ -267,23 +274,14 @@ function DashboardContent() {
         }));
         
         // Show success notification
-        setNotificationMessage('Profile image updated!');
-        setTimeout(() => {
-          setShowCopyNotification(false);
-        }, 2500);
+        showNotificationMessage('Profile image updated!');
       } catch (error) {
         console.error("Error updating profile:", error);
-        setNotificationMessage('Image too large!');
-        setTimeout(() => {
-          setShowCopyNotification(false);
-        }, 2500);
+        showNotificationMessage('Image too large!');
       }
     } catch (error) {
       console.error("Error handling image:", error);
-      setNotificationMessage('Error processing image!');
-      setTimeout(() => {
-        setShowCopyNotification(false);
-      }, 2500);
+      showNotificationMessage('Error processing image!');
     } finally {
       setUploading(false);
       setFile(null);
@@ -344,22 +342,18 @@ function DashboardContent() {
       setEditingProject(null);
       
       // Show success notification
-      setNotificationMessage('Game updated successfully!');
-      setShowCopyNotification(true);
-      setTimeout(() => setShowCopyNotification(false), 2500);
+      showNotificationMessage('Game updated successfully!');
     } catch (err) {
       console.error(err);
       // Show error notification
-      setNotificationMessage('Error updating game!');
-      setShowCopyNotification(true);
-      setTimeout(() => setShowCopyNotification(false), 2500);
+      showNotificationMessage('Error updating game!');
     } finally {
       setSaving(false);
     }
   };
 
   // --------------------------------------------------
-  //  DELETE HANDLERS - NEW CODE
+  //  DELETE HANDLERS
   // --------------------------------------------------
   const openDeleteModal = project => {
     setDeleteProject(project);
@@ -382,16 +376,12 @@ function DashboardContent() {
       setDeleteProject(null);
       
       // Show success notification
-      setNotificationMessage('Game deleted successfully!');
-      setShowCopyNotification(true);
-      setTimeout(() => setShowCopyNotification(false), 1000);
+      showNotificationMessage('Game deleted successfully!');
     } catch (err) {
       console.error("Error deleting game:", err);
       
       // Show error notification
-      setNotificationMessage('Error deleting game!');
-      setShowCopyNotification(true);
-      setTimeout(() => setShowCopyNotification(false), 1000);
+      showNotificationMessage('Error deleting game!');
     } finally {
       setDeleting(false);
     }
@@ -406,16 +396,11 @@ function DashboardContent() {
     navigator.clipboard.writeText(gameUrl)
       .then(() => {
         // Show notification
-        setNotificationMessage('Link copied to clipboard!');
-        setShowCopyNotification(true);
-        
-        // Hide notification after 1 second
-        setTimeout(() => {
-          setShowCopyNotification(false);
-        }, 1000);
+        showNotificationMessage('Link copied to clipboard!');
       })
       .catch(err => {
         console.error('Failed to copy: ', err);
+        showNotificationMessage('Failed to copy link!');
       });
   };
 
@@ -465,21 +450,18 @@ function DashboardContent() {
                   </div>
                 )}
               </div>
-              <label className="absolute bottom-0 right-0 p-2 bg-pink-600 hover:bg-pink-700 border-2 border-pink-400 cursor-pointer transition-colors duration-200">
-                <Edit size={16} />
-                {/* removed this from merge conflict:*/}
-              {/* <label className={`absolute bottom-0 right-0 p-2 ${uploading ? 'bg-gray-600' : 'bg-pink-600 hover:bg-pink-700'} border-2 border-pink-400 cursor-pointer transition-colors duration-200`}>
+              <label className={`absolute bottom-0 right-0 p-2 ${uploading ? 'bg-gray-600' : 'bg-pink-600 hover:bg-pink-700'} border-2 border-pink-400 cursor-pointer transition-colors duration-200`}>
                 {uploading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 ) : (
                   <Edit size={16} />
-                )} */}
+                )}
                 <input
                   type="file"
                   className="hidden"
                   accept="image/*"
                   onChange={(e) => setFile(e.target.files[0])}
-                //   disabled={uploading} // idk if this is correct, just kept incoming from merge conflict
+                  disabled={uploading}
                 />
               </label>
             </div>
@@ -514,9 +496,6 @@ function DashboardContent() {
             
             {/* Action Buttons */}
             <div className="space-y-3">
-              {/* <button className="w-full flex items-center justify-center p-3 bg-indigo-600 hover:bg-indigo-500 border-2 border-indigo-400 transition-colors duration-200 rounded-md shadow-[2px_2px_0px_0px_rgba(79,70,229)]">
-                <Edit size={16} className="mr-2" /> Edit Profile
-              </button> */}
               <button onClick={handleLogout} className="w-full flex items-center justify-center p-3 bg-pink-600 hover:bg-pink-500 border-2 border-pink-400 transition-colors duration-200 rounded-md shadow-[2px_2px_0px_0px_rgba(236,72,153)]">
                 <LogOut size={16} className="mr-2" /> Logout
               </button>
@@ -612,17 +591,6 @@ function DashboardContent() {
                           Share
                         </button>
                       </div>
-                      {/* Notification popup - moved outside the relative container to avoid being clipped */}
-                      {showCopyNotification && (
-                        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-indigo-900 border-4 border-pink-500 text-white px-6 py-4 rounded-md shadow-[0px_0px_15px_5px_rgba(236,72,153,0.5)]">
-                          <div className="text-center">
-                            <p className="text-lg font-bold text-pink-400" style={{ fontFamily: '"Press Start 2P", cursive', fontSize: '14px' }}>
-                              LINK COPIED!
-                            </p>
-                            <p className="mt-2 text-sm text-indigo-200">Game link saved to clipboard</p>
-                          </div>
-                        </div>
-                      )}
                     </div>
                     {/* END OF BUTTON SECTION */}
                   </div>
@@ -654,12 +622,12 @@ function DashboardContent() {
 
       <BottomNavigation/>
 
-      {/** NOTIFICATION POPUP **/}
-      {showCopyNotification && (
+      {/** CENTRALIZED NOTIFICATION POPUP **/}
+      {showNotification && (
         <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-indigo-900 border-4 border-pink-500 text-white px-6 py-4 rounded-md shadow-[0px_0px_15px_5px_rgba(236,72,153,0.5)]">
           <div className="text-center">
             <p className="text-lg font-bold text-pink-400" style={{ fontFamily: '"Press Start 2P", cursive', fontSize: '14px' }}>
-              {notificationMessage || 'LINK COPIED!'}
+              {notificationMessage}
             </p>
           </div>
         </div>
@@ -726,7 +694,7 @@ function DashboardContent() {
         </div>
       )}
 
-      {/** DELETE CONFIRMATION MODAL - NEW **/}
+      {/** DELETE CONFIRMATION MODAL **/}
       {deleteProject && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-lg w-full max-w-md space-y-4 border-2 border-red-500">
