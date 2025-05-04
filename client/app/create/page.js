@@ -5,7 +5,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ChatInterface from '../../components/ChatInterface';
 import GameDisplay from '../../components/GameDisplay';
-import { Gamepad2, MessageSquare, AlertTriangle, Share2 } from 'lucide-react';
+import GameDisplayMulti from '../../components/GameDisplayMulti';
+import { Gamepad2, MessageSquare, AlertTriangle, Share2, Users } from 'lucide-react';
 import BottomNavigation from '../../components/BottomNavigation';
 import { useAuth } from '../../contexts/AuthContext';
 import { doc, setDoc, updateDoc } from 'firebase/firestore';
@@ -16,6 +17,7 @@ export default function Home() {
   const router = useRouter();
   const [gameCode, setGameCode] = useState(null);
   const [gameType, setGameType] = useState(null);
+  const [gameMode, setGameMode] = useState(null); // New state for game mode
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [mounted, setMounted] = useState(false);
@@ -34,16 +36,20 @@ export default function Home() {
     document.getElementById('game-container')?.classList.add('crt-on');
   }, []);
 
-  const handleGameGeneration = async (type, code) => {
+  // Optimized to prevent unnecessary re-renders
+  const handleGameGeneration = async (type, code, mode) => {
     setLoading(true);
     setError(null);
     try {
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      if (code) {
-        setGameType(type);
+      // Only update these if they've changed to prevent unnecessary re-renders
+      if (type !== gameType) setGameType(type);
+      if (mode !== gameMode) setGameMode(mode);
+      
+      // For the code, only update if content has changed
+      if (code && code !== gameCode) {
         setGameCode(code);
-        console.log(`Received ${type} game code directly, length: ${code.length}`);
-      } else {
+        console.log(`Received ${type} game code, length: ${code.length}, mode: ${mode}`);
+      } else if (!code) {
         console.warn("No game code provided");
       }
     } catch (error) {
@@ -86,6 +92,7 @@ export default function Home() {
       const gameUuid = uuidv4();
       const imageBase64 = gameImagePreview || null;
 
+      // Include gameMode in the data saved to Firestore
       await setDoc(doc(db, "games", gameUuid), {
         game_uuid: gameUuid,
         creator_id: userId,
@@ -94,6 +101,7 @@ export default function Home() {
         description: gameDescription,
         gameType: gameType,
         gameCode: gameCode,
+        gameMode: gameMode, // Save the game mode to database
         image: imageBase64,
         playCount: 0,
         favCount: 0,
@@ -190,23 +198,46 @@ export default function Home() {
           
           {/* Right side - Game Display */}
           <div className="md:w-2/3 bg-gray-800 border-4 border-indigo-600 rounded-lg shadow-[6px_6px_0px_0px_rgba(79,70,229)] overflow-hidden">
-            <div className="px-4 py-2 bg-indigo-800 border-b-4 border-indigo-500 flex items-center">
-              <Gamepad2 size={20} className="mr-2 text-pink-400" />
-              <h2 className="text-lg font-bold text-white"
-                  style={{ 
-                    textShadow: '1px 1px 0px #4F46E5',
-                    fontFamily: '"Press Start 2P", cursive',
-                    fontSize: '12px'
-                  }}>
-                GAME SCREEN
-              </h2>
+            <div className="px-4 py-2 bg-indigo-800 border-b-4 border-indigo-500 flex items-center justify-between">
+              <div className="flex items-center">
+                <Gamepad2 size={20} className="mr-2 text-pink-400" />
+                <h2 className="text-lg font-bold text-white"
+                    style={{ 
+                      textShadow: '1px 1px 0px #4F46E5',
+                      fontFamily: '"Press Start 2P", cursive',
+                      fontSize: '12px'
+                    }}>
+                  GAME SCREEN
+                </h2>
+              </div>
+              
+              {/* Display game mode if available */}
+              {gameMode && (
+                <div className="flex items-center bg-indigo-700 px-3 py-1 rounded-full border border-indigo-500">
+                  <Users size={14} className="mr-1 text-pink-400" />
+                  <span className="text-xs text-white" style={{ fontFamily: '"Press Start 2P", cursive', fontSize: '8px' }}>
+                    {gameMode === 'single' ? '1P MODE' : '2P MODE'}
+                  </span>
+                </div>
+              )}
             </div>
             {/* Pass explicitly loading={loading} to ensure the prop is passed */}
-            <GameDisplay 
-              gameCode={gameCode} 
-              gameType={gameType} 
-              loading={loading} 
-            />
+
+            {
+                gameMode === 'single' ? (
+                    <GameDisplay 
+                        gameCode={gameCode} 
+                        gameType={gameType}
+                        loading={loading} 
+                    />
+                ) : (
+                    <GameDisplayMulti
+                        gameCode={gameCode} 
+                        gameType={gameType}
+                        loading={loading} 
+                    />
+                )
+            }
           </div>
         </div>
       </main>
@@ -244,6 +275,15 @@ export default function Home() {
                       onChange={(e) => setGameDescription(e.target.value)}
                       className="w-full bg-gray-700 border-2 border-indigo-500 rounded px-3 py-2 text-white h-24 resize-none"
                     />
+                  </div>
+
+                  {/* Display game mode in the publish modal */}
+                  <div>
+                    <label className="block text-sm text-pink-300 font-bold">GAME MODE</label>
+                    <div className="mt-1 text-white bg-gray-700 border-2 border-indigo-500 rounded px-3 py-2 flex items-center">
+                      <Users size={16} className="mr-2 text-indigo-400" />
+                      <span>{gameMode === 'single' ? 'One Player Mode' : 'Two Player Mode'}</span>
+                    </div>
                   </div>
 
                   <div>

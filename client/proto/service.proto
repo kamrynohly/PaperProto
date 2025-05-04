@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package paperproto_server;
+
+// The service definition.
+service PaperProtoServer {
+    rpc LaunchGameRoom (LaunchGameRoomRequest) returns (LaunchGameRoomResponse);
+    rpc JoinGameRoom (JoinGameRoomRequest) returns (JoinGameRoomResponse);
+    rpc GetPlayers (GetPlayersRequest) returns (stream GetPlayersResponse);
+    rpc SubscribeToGameUpdates (SubscribeToGameUpdatesRequest) returns (stream SubscribeToGameUpdatesResponse);
+    rpc SendGameUpdate (SendGameUpdateRequest) returns (SendGameUpdateResponse);
+    rpc GameEnd (GameEndRequest) returns (GameEndResponse);
+    rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse);
+}
+
+// MARK: Launch Game Room
+message LaunchGameRoomRequest {
+    string gameSessionID = 1;
+    string hostID = 2;
+    string hostUsername = 3;
+}
+
+message LaunchGameRoomResponse {
+    enum LaunchGameRoomStatus {
+        SUCCESS = 0;
+        FAILURE = 1;
+    }
+    LaunchGameRoomStatus status = 1;
+    string message = 2;
+}
+
+// MARK: Join Game Room
+message JoinGameRoomRequest {
+    string gameSessionID = 1;
+    string userID = 2;
+    string username = 3;
+}
+
+message JoinGameRoomResponse {
+    enum JoinGameRoomStatus {
+        SUCCESS = 0;
+        FAILURE = 1;
+    }
+    JoinGameRoomStatus status = 1;
+    string message = 2;
+}
+
+message GetPlayersRequest {
+    string gameSessionID = 1;
+    string userID = 2;
+}
+
+message GetPlayersResponse {
+    string username = 1;
+    string userID = 2;
+}
+
+// MARK: Game Updates
+message SubscribeToGameUpdatesRequest {
+    string gameSessionID = 1;
+    string userID = 2;
+}
+
+message SubscribeToGameUpdatesResponse {
+    string fromPlayerID = 1;
+    string gameState = 2;
+}
+
+// MARK: Send Updates
+message SendGameUpdateRequest {
+    string fromPlayerID = 1;
+    string gameState = 2;
+    string gameSessionID = 3;
+}
+
+message SendGameUpdateResponse {
+    enum SendGameUpdateStatus {
+        SUCCESS = 0;
+        FAILURE = 1;
+    }
+    SendGameUpdateStatus status = 1;
+    string message = 2;   
+}
+
+// MARK: Game End
+message GameEndRequest {
+    string gameSessionID = 1;
+    string endState = 2;
+}
+
+message GameEndResponse {
+    enum GameEndStatus {
+        SUCCESS = 0;
+        FAILURE = 1;
+    }
+    GameEndStatus status = 1;
+    string message = 2;
+}
+
+// MARK: Heartbeat
+message HeartbeatRequest {
+    string requestor_id = 1;
+    string server_id = 2;
+}
+
+message HeartbeatResponse {
+    string responder_id = 1;
+    string status = 2;
+}

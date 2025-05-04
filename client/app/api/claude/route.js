@@ -30,7 +30,6 @@ export async function POST(request) {
     })));
     
     // Process user messages with images
-    // Process user messages with images
 for (let i = 0; i < messages.length; i++) {
     const msg = messages[i];
     
@@ -229,8 +228,11 @@ for (let i = 0; i < messages.length; i++) {
     const payload = {
       model: "claude-3-7-sonnet-20250219",
       messages: messages,
-      max_tokens: 16000,
-      temperature: 0.7
+      max_tokens: 20000,
+      thinking: {
+        type: "enabled",
+        budget_tokens: 16000
+      }
     };
 
     if (system) {
@@ -308,6 +310,7 @@ for (let i = 0; i < messages.length; i++) {
 
     console.log("✅ Successfully received response from Claude API");
     const data = await response.json();
+    console.log("🚀 Claude API response:", data);
     
     return NextResponse.json(data);
   } catch (error) {

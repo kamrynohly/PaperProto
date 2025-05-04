@@ -32,7 +32,11 @@ export async function sendMessageToClaude(messages, systemPrompt) {
       // Prepare the request body
       const requestBody = {
         model: "claude-3-7-sonnet-20250219",
-        max_tokens: 16000,
+        max_tokens: 20000, 
+        thinking: {
+            type: "enabled",
+            budget_tokens: 16000
+          },
         system: systemPrompt,
         messages: messages
       };

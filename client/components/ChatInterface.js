@@ -3,12 +3,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { sendMessageToClaude } from '../utils/claude-api';
+import { InitialSetupScript, ImprovementCycleScript, InitialMultiSetupScript, ImprovementMultiCycleScript } from '../Prompts';
 import NextImage from 'next/image';
+import GameModeModal from './GameModeModal';
 
 const initialMessages = [
   {
     role: 'assistant',
-    content: "Hi there! I'm Claude, your game development assistant. What kind of game would you like me to build for you today?"
+    content: "What kind of game would you like me to build for you today?"
   }
 ];
 
@@ -22,6 +24,9 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
   const [gameSteps, setGameSteps] = useState([]);
   const [uploadedImages, setUploadedImages] = useState([]);
   const [showImageUpload, setShowImageUpload] = useState(false);
+  const [showGameModeModal, setShowGameModeModal] = useState(false);
+  const [selectedGameMode, setSelectedGameMode] = useState(null);
+  const [pendingUserMessage, setPendingUserMessage] = useState(null);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
 
@@ -33,47 +38,9 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
   // Pass updated game code to parent when it changes
   useEffect(() => {
     if (currentGameType && currentGameCode) {
-      onGameRequest(currentGameType, currentGameCode);
+      onGameRequest(currentGameType, currentGameCode, selectedGameMode);
     }
-  }, [currentGameType, currentGameCode, onGameRequest]);
-
-  /**
-   * Compress an image file by resizing and lowering quality
-   * @param {File} file
-   * @returns {Promise<File>}
-   */
-  const compressImage = (file) => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      img.onload = () => {
-        // Adjust max dimensions as needed
-        const maxWidth = 1024;
-        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              reject(new Error('Compression failed: blob is null'));
-              return;
-            }
-            const compressedFile = new File([blob], file.name, {
-              type: 'image/jpeg',
-              lastModified: Date.now(),
-            });
-            resolve(compressedFile);
-          },
-          'image/jpeg',
-          0.7 // quality between 0 and 1
-        );
-      };
-      img.onerror = (err) => reject(err);
-    });
-  };
+  }, [currentGameType, currentGameCode, onGameRequest, selectedGameMode]);
 
   // Handle file selection with compression
   const handleFileSelect = (e) => {
@@ -147,10 +114,23 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
     setShowImageUpload(!showImageUpload);
   };
 
-  const processGameRequest = async (userMessage, imageUrls = []) => {
+  // Handle game mode selection
+  const handleGameModeSelect = (mode) => {
+    setSelectedGameMode(mode);
+    console.log(`Selected game mode: ${mode}`);
+    
+    // If we have a pending user message, process it now
+    if (pendingUserMessage) {
+      processMessageWithGameMode(pendingUserMessage.text, pendingUserMessage.images, mode);
+      setPendingUserMessage(null);
+    }
+  };
+
+  const processMessageWithGameMode = async (userMessage, imageUrls = [], gameMode) => {
     setLoading(true);
     console.log("Processing user message:", userMessage);
     console.log("With images:", imageUrls.length);
+    console.log("Game mode:", gameMode);
     
     // Debug image sizes if any
     if (imageUrls.length > 0) {
@@ -185,8 +165,8 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
     setUploadedImages([]);
   
     try {
-      // 2. Build system prompt based on current development step
-      const systemPrompt = buildSystemPrompt(messageText, developmentStep);
+      // 2. Build system prompt based on current development step and include game mode
+      const systemPrompt = buildSystemPrompt(messageText, developmentStep, gameMode);
   
       // 3. Send to Claude - include ALL text messages but optimize code messages
       // Create a copy of messages to modify for sending to Claude
@@ -229,10 +209,16 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
         };
       });
       
-      // We don't handle image messages here, that's now done on the server side
-      
       const response = await sendMessageToClaude(messagesForClaude, systemPrompt);
-      const claudeResponse = response.content[0].text;
+      
+      let claudeResponse = '';
+      // Find the content item with type 'text'
+      for (const item of response.content) {
+        if (item.type === 'text') {
+          claudeResponse = item.text;
+          break;
+        }
+      }
       console.log("Claude response received, length:", claudeResponse.length);
   
       // 4. Extract conversation text by removing the marker blocks
@@ -263,10 +249,37 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
   
       // Extract code if present
       const codeMatch = claudeResponse.match(/---GAME_CODE_START---([\s\S]*?)---GAME_CODE_END---/);
+      console.log("Game code extracted:", codeMatch ? "yes" : "no", codeMatch ? codeMatch[1].length : 0);
+      
       if (codeMatch?.[1]) {
         // Only store the latest version of the code
         gameCode = codeMatch[1].trim();
         setCurrentGameCode(gameCode);
+        
+        // If we have a game type or this is initial setup, send immediately to parent
+        if (gameType || developmentStep === 0) {
+          if (!gameType) {
+            gameType = "New Game";
+            setCurrentGameType(gameType);
+          }
+          console.log("Game code and type found, sending to parent:", gameCode.length);
+          onGameRequest(gameType, gameCode, selectedGameMode);
+        }
+      } else if (!codeMatch && claudeResponse.length > 1000 && 
+                (claudeResponse.includes('<html>') || claudeResponse.includes('<!DOCTYPE'))) {
+        // This might be a complete game that wasn't properly marked with the tags
+        console.log("No game markers found, but response might contain HTML game code");
+        gameCode = claudeResponse;
+        setCurrentGameCode(gameCode);
+        
+        // Force game type if needed
+        if (!gameType) {
+          gameType = "Unknown Game";
+          setCurrentGameType(gameType);
+        }
+        
+        console.log("Attempting to render unmarked game code");
+        onGameRequest(gameType, gameCode, selectedGameMode);
       }
   
       // 6. Determine new development step
@@ -313,74 +326,39 @@ export default function ChatInterface({ onGameRequest, setLoading }) {
     }
   };
 
-  // Build system prompt based on current development state
-  const buildSystemPrompt = (userMessage, step) => {
-    // Initial setup - complete game implementation
-    if (step === 0) {
-      return `You are a friendly and very skilled game development assistant that makes beautiful, delightful computer games in the browser.
-You co-create games with the user by providing complete implementations and iteratively improving them.
-
-—––– COMPLETE IMPLEMENTATION –––—
-1. Read the user's request carefully and mentally break it down into 3-5 logical steps.
-2. DO NOT share these steps with the user. They are only for your internal planning.
-3. Implement the COMPLETE game in one go, making sure it's fully functional.
-4. Wrap your answer in these markers:
-
----GAME_TYPE_START---
-[game name]
----GAME_TYPE_END---
-
----GAME_STEPS_START---
-Step 1: [brief description]
-Step 2: [brief description]
-Step 3: [brief description]
-[additional steps if necessary]
----GAME_STEPS_END---
-
----GAME_CODE_START---
-[complete, runnable HTML+CSS+JS code for the full game]
----GAME_CODE_END---
-
-5. Ask the user if they would like any specific improvements to the game.
-
-IMPORTANT:
-- Keep your explanations concise and focus on what the game does
-- Never include sound effects
-- Ensure your code is fully runnable in a browser
-- Make sure the code does not exceed size limitations
-- Never reference external images, create all of your own images
-- If the user does not ask for a specific style, pick a fun fitting style with animations
-- If the user just attaches an image and doesnt specify what game, it is atari breakout
-- Never end your responses with a colon`;
+  const processGameRequest = async (userMessage, imageUrls = []) => {
+    // If this is the first game request (step 0) and we don't have a game mode yet,
+    // store the message and show the modal
+    if (developmentStep === 0 && !selectedGameMode) {
+      setPendingUserMessage({ text: userMessage, images: imageUrls });
+      setShowGameModeModal(true);
+      return;
     }
     
+    // Otherwise process the request with the existing game mode
+    await processMessageWithGameMode(userMessage, imageUrls, selectedGameMode);
+  };
+
+  // Build system prompt based on current development state and game mode
+  const buildSystemPrompt = (userMessage, step, gameMode) => {
+    let basePrompt;
+    
+    // Initial setup - complete game implementation
+    if (step === 0) {
+      basePrompt = selectedGameMode === 'multi' ? InitialMultiSetupScript : InitialSetupScript;
+    }
     // Improvement cycle - refine based on user feedback
     else {
-      return `You are a friendly and very skilled game development assistant that makes beautiful, delightful computer games in the browser.
-You co-create games with the user by providing complete implementations and iteratively improving them.
-
-—––– IMPROVEMENT CYCLE –––—
-1. The user has provided feedback on your implementation.
-2. Carefully incorporate their requested changes while keeping the core game intact.
-3. Wrap your answer in:
-
----GAME_TYPE_START---
-[game name]
----GAME_TYPE_END---
-
----GAME_CODE_START---
-[improved, runnable HTML+CSS+JS code for the complete game]
----GAME_CODE_END---
-
-4. Ask the user if they'd like any additional improvements.
-
-IMPORTANT:
-- Keep your explanations concise
-- Ensure the code remains fully runnable in a browser
-- Make sure the code does not exceed size limitations
-- Never reference external images, create all of your own images
-- Never end your responses with a colon`;
+      basePrompt = selectedGameMode === 'multi' ? ImprovementMultiCycleScript : ImprovementCycleScript;
     }
+    
+    // If gameMode is defined, append it to the system prompt
+    if (gameMode) {
+      // Add a section to the prompt that specifies the player mode
+      return basePrompt + `\n\nIMPORTANT: The user has specified this should be a ${gameMode === 'single' ? 'ONE-PLAYER' : 'TWO-PLAYER'} game. Make sure your implementation supports ${gameMode === 'single' ? 'a single player' : 'two players'}.`;
+    }
+    
+    return basePrompt;
   };
 
   // Handle form submission
@@ -534,6 +512,13 @@ IMPORTANT:
           </div>
         </form>
       </div>
+      
+      {/* Game Mode Modal */}
+      <GameModeModal 
+        isOpen={showGameModeModal} 
+        onClose={() => setShowGameModeModal(false)}
+        onSelectMode={handleGameModeSelect}
+      />
     </div>
   );
 }
